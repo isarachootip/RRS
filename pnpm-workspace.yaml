@@ -1,0 +1,15 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+onlyBuiltDependencies:
+  - "@prisma/client"
+  - "@prisma/engines"
+  - "@swc/core"
+  - "@tailwindcss/oxide"
+  - esbuild
+  - prisma
+  - sharp
+# ไม่รันสคริปต์ telemetry/โฆษณาตอนติดตั้ง
+ignoredBuiltDependencies:
+  - "@nestjs/core"
+  - "@scarf/scarf"

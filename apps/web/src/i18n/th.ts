@@ -1,0 +1,73 @@
+/**
+ * ข้อความ UI ทั้งหมดอยู่ที่นี่ (CLAUDE.md กฎข้อ 8) — คอมโพเนนต์เรียกผ่าน t("key")
+ * เพิ่มภาษาอื่นได้ภายหลังด้วยไฟล์ที่มี key เดียวกัน
+ */
+export const th = {
+  "app.name": "RRS",
+  "app.tagline": "ระบบบริหารงานเช่าและขาย",
+  "nav.dashboard": "ภาพรวม",
+  "nav.leads": "ลูกค้า",
+  "nav.assets": "ทรัพย์สิน",
+  "nav.owners": "เจ้าของทรัพย์",
+  "nav.appointments": "นัดดูห้อง",
+  "nav.deals": "จองและสัญญา",
+  "nav.commissions": "ค่านายหน้า",
+  "nav.reports": "รายงาน",
+  "nav.settings": "ตั้งค่า",
+  "nav.open": "เปิดเมนู",
+  "nav.close": "ปิดเมนู",
+  "nav.main": "เมนูหลัก",
+  "topbar.search": "ค้นหาชื่อ เบอร์โทร โครงการ หรือเลขห้อง",
+  "topbar.user": "บัญชีของฉัน",
+  "status.legend": "สถานะห้อง",
+  "status.AVAILABLE": "ว่าง",
+  "status.BOOKED": "จองแล้ว",
+  "status.CONTRACTED": "มีผู้เช่า",
+  "status.UNAVAILABLE": "ไม่ว่าง",
+  "api.checking": "กำลังตรวจการเชื่อมต่อ",
+  "api.up": "เชื่อมต่อระบบแล้ว",
+  "api.down": "เชื่อมต่อระบบไม่ได้ ตรวจว่า API ทำงานอยู่ (pnpm dev)",
+  "page.comingIn": "หน้านี้จะพร้อมใช้ในงาน {phase}",
+  "dashboard.title": "ภาพรวม",
+  "dashboard.intro": "ตัวเลขห้องว่าง ลูกค้าใหม่ และรายได้จะแสดงที่นี่เมื่อเชื่อมข้อมูลจริง",
+  "auth.checking": "กำลังตรวจสอบการเข้าสู่ระบบ",
+  "auth.panel.title": "งานเช่าและขายทั้งทีม ในที่เดียว",
+  "auth.panel.body": "ลูกค้า ห้อง นัดดู สัญญา และค่านายหน้า ใช้ข้อมูลชุดเดียวกันทุกคน",
+  "auth.login.title": "เข้าสู่ระบบ",
+  "auth.email": "อีเมล",
+  "auth.password": "รหัสผ่าน",
+  "auth.login.submit": "เข้าสู่ระบบ",
+  "auth.login.forgot": "ลืมรหัสผ่าน",
+  "auth.working": "กำลังตรวจสอบ",
+  "auth.mfa.title": "ยืนยันตัวตนอีกขั้น",
+  "auth.mfa.body": "เปิดแอป Authenticator แล้วใส่รหัส 6 หลักของ RRS",
+  "auth.mfa.code": "รหัส 6 หลัก",
+  "auth.mfa.submit": "ยืนยัน",
+  "auth.mfa.back": "กลับไปหน้าเข้าสู่ระบบ",
+  "auth.setup.title": "ตั้งค่าการยืนยันสองขั้นตอน",
+  "auth.setup.body":
+    "บทบาทของคุณต้องใช้การยืนยันสองขั้นตอน สแกน QR code ด้วย Google Authenticator หรือ Microsoft Authenticator แล้วใส่รหัส 6 หลักที่แอปแสดง",
+  "auth.setup.manual": "สแกนไม่ได้? พิมพ์รหัสนี้ในแอปแทน",
+  "auth.setup.qrAlt": "QR code สำหรับเพิ่ม RRS ในแอป Authenticator",
+  "auth.setup.submit": "เปิดใช้และเข้าสู่ระบบ",
+  "auth.forgot.title": "ลืมรหัสผ่าน",
+  "auth.forgot.body": "ใส่อีเมลที่ใช้เข้าสู่ระบบ เราจะส่งลิงก์ตั้งรหัสผ่านใหม่ให้",
+  "auth.forgot.submit": "ส่งลิงก์ตั้งรหัสผ่านใหม่",
+  "auth.reset.title": "ตั้งรหัสผ่านใหม่",
+  "auth.reset.body": "รหัสผ่านต้องยาวอย่างน้อย 10 ตัวอักษร มีทั้งตัวอักษรและตัวเลข",
+  "auth.reset.new": "รหัสผ่านใหม่",
+  "auth.reset.confirm": "ยืนยันรหัสผ่านใหม่",
+  "auth.reset.mismatch": "รหัสผ่านทั้งสองช่องไม่ตรงกัน",
+  "auth.reset.submit": "ตั้งรหัสผ่านใหม่",
+  "auth.reset.missing": "ลิงก์ไม่ครบ กรุณาเปิดลิงก์จากอีเมลอีกครั้ง หรือขอลิงก์ใหม่",
+  "auth.toLogin": "ไปหน้าเข้าสู่ระบบ",
+  "auth.logout": "ออกจากระบบ",
+} as const;
+
+export type MessageKey = keyof typeof th;
+
+export function t(key: MessageKey, vars?: Record<string, string | number>): string {
+  let s: string = th[key];
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, String(v));
+  return s;
+}

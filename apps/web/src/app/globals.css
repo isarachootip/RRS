@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+/* โทนสี: กระดาษเย็น หมึกน้ำเงินเทาเข้ม แถบเมนูสีน้ำลากูน + สีสถานะห้อง */
+@theme {
+  --font-sans: "IBM Plex Sans Thai", "Noto Sans Thai", system-ui, sans-serif;
+  --color-paper: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-ink: #1c2733;
+  --color-ink-muted: #5b6878;
+  --color-line: #dde2e8;
+  --color-lagoon: #0f5e5c;
+  --color-lagoon-deep: #0a4442;
+  --color-lagoon-soft: #d9ecea;
+  --color-status-available: #2f7d4f;
+  --color-status-booked: #b5761a;
+  --color-status-contracted: #2b5fa8;
+  --color-status-unavailable: #7a8594;
+}
+
+html {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-paper);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ภาษาไทยมีสระบน-ล่าง ต้องการ line-height มากกว่าอังกฤษ */
+body {
+  line-height: 1.65;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-lagoon);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

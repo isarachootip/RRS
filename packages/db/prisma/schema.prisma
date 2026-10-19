@@ -1,0 +1,1375 @@
+// =====================================================================
+// RRS — Property Rental & Sales Management Platform
+// สเปก: docs/srs.md, docs/design.md (ข้อ 3, 4, 5, 6, 7.1), กฎ: docs/decisions.md
+//
+// หลักการ (ดู CLAUDE.md):
+// - ชื่อตาราง/คอลัมน์ใน DB เป็น snake_case, ใน Prisma เป็น camelCase
+// - เงินใช้ Decimal(14,2) เสมอ
+// - ไม่ลบจริง: archivedAt / archivedById
+// - createdById / updatedById / archivedById เป็น uuid ธรรมดา (ไม่ผูก FK)
+//   เพื่อไม่ให้ทุกตารางต้องมี relation กลับไปที่ User; audit_logs เป็นแหล่งข้อมูลหลักของประวัติ
+// - constraint ที่ Prisma เขียนไม่ได้ (EXCLUDE กันจองซ้ำ, CHECK, trigger ห้ามแก้ audit_logs)
+//   อยู่ใน migration 0002_constraints (SQL ล้วน)
+// =====================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pg_trgm, btree_gist]
+}
+
+// ---------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------
+
+/// ขอบเขตข้อมูลที่บทบาทเห็นได้ต่อ permission (design ข้อ 5)
+enum DataScope {
+  ALL
+  TEAM
+  OWN
+}
+
+/// D01 (สมมติฐาน): SRS 2.1 ขาดค่าสุดท้าย เพิ่ม INACTIVE = ไม่ฝากต่อ/เลิกติดต่อ
+enum OwnerStatus {
+  NEW
+  CONTACTED
+  LISTED
+  INACTIVE
+}
+
+enum AssetCategory {
+  CONDO
+  HOUSE
+  TOWNHOME
+  APARTMENT_UNIT
+  APARTMENT_BUILDING
+  FACTORY
+  WAREHOUSE
+  LAND
+  COMMERCIAL
+}
+
+/// OWNER = บริษัทเป็นเจ้าของ, AGENT = รับฝากจากเจ้าของ (SRS ข้อ 1)
+enum OwnershipType {
+  OWNER
+  AGENT
+}
+
+enum RoomType {
+  STUDIO
+  ONE_BEDROOM
+  TWO_BEDROOMS
+  THREE_BEDROOMS
+  PENTHOUSE
+  DUPLEX
+  OTHER
+}
+
+/// สถานะห้อง (SRS 2.2) — เปลี่ยนอัตโนมัติจากนัด/จอง/สัญญา ยกเว้น UNAVAILABLE ที่ตั้งมือได้
+enum AssetStatus {
+  AVAILABLE
+  VIEWING_SCHEDULED
+  NEGOTIATING
+  BOOKED
+  CONTRACTED
+  SOLD
+  UNAVAILABLE
+}
+
+enum TransactionType {
+  RENT
+  SALE
+}
+
+enum AssetAgentRole {
+  LISTING
+  CO_AGENT
+}
+
+enum AgreementStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_APPROVAL
+  PUBLISHED
+  CLOSED
+}
+
+enum LeadIntent {
+  RENT
+  BUY
+}
+
+enum LeadSource {
+  FACEBOOK
+  WEBSITE
+  LINE
+  REFERRAL
+  PHONE
+  WALK_IN
+  PROPERTY_PORTAL
+  OTHER
+}
+
+/// สถานะลูกค้า (SRS 2.3) + สถานะเพิ่มเติม Lost / ยกเลิก / ยังไม่ตัดสินใจ
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  VIEWING
+  NEGOTIATING
+  BOOKED
+  CONTRACTED
+  CLOSED_WON
+  LOST
+  CANCELLED
+  UNDECIDED
+}
+
+/// บทบาทในดีล ใช้ทั้งผู้ร่วมงาน lead และการแบ่งค่านายหน้า (SRS 4.3)
+enum DealRole {
+  FINDER
+  LISTING
+  SHOWING
+  CLOSER
+  COMPANY
+}
+
+enum CollaboratorStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ActivityType {
+  CALL
+  CHAT
+  EMAIL
+  NOTE
+  MEETING
+  FOLLOW_UP
+  STATUS_CHANGE
+}
+
+/// ผลการติดตามหลังนัดดู (SRS 3.3)
+enum FollowUpOutcome {
+  LIKED
+  NEGOTIATING_PRICE
+  WANTS_OTHER_UNITS
+  CONSIDERING
+  NOT_INTERESTED
+  AGREED
+}
+
+/// สถานะนัดหมาย (SRS 3.2)
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  RESCHEDULED
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  PAID
+  CONVERTED
+  CANCELLED
+}
+
+enum ContractStatus {
+  DRAFT
+  PENDING_SIGNATURE
+  ACTIVE
+  ENDED
+  TERMINATED
+  SUPERSEDED
+}
+
+enum PartyType {
+  TENANT
+  CO_TENANT
+  OCCUPANT
+  GUARANTOR
+}
+
+/// pipeline งานขาย (design ข้อ 7.1)
+enum SaleStage {
+  INTERESTED
+  OFFERED
+  DEPOSIT_PAID
+  SPA_SIGNED
+  LOAN_PENDING
+  TRANSFERRED
+  CLOSED
+  CANCELLED
+}
+
+enum FeePayer {
+  BUYER
+  SELLER
+  SPLIT
+}
+
+enum PaymentType {
+  BOOKING_FEE
+  SECURITY_DEPOSIT
+  ADVANCE_RENT
+  MONTHLY_RENT
+  SALE_DEPOSIT
+  SALE_PAYMENT
+  COMMISSION_FROM_OWNER
+  OTHER_INCOME
+  REFUND
+}
+
+enum PaymentDirection {
+  IN
+  OUT
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  PROMPTPAY
+  CHEQUE
+  CARD
+  OTHER
+}
+
+enum RentScheduleStatus {
+  DUE
+  PARTIAL
+  PAID
+  OVERDUE
+  WAIVED
+}
+
+enum ExpenseCategory {
+  COMMON_FEE
+  REPAIR
+  UTILITY
+  PROPERTY_TAX
+  INSURANCE
+  CLEANING
+  MARKETING
+  OTHER
+}
+
+/// สูตรค่านายหน้า (SRS 4.2 ข้อ 1–5 + ขาย) — พารามิเตอร์อยู่ใน commissionParams (JSON)
+/// ONE_MONTH {} · PERCENT_TOTAL {percent} · N_MONTHS {months} · FIXED {amount}
+/// CUSTOM {amount, note} · PERCENT_SALE_PRICE {percent}
+enum CommissionFormula {
+  ONE_MONTH
+  PERCENT_TOTAL
+  N_MONTHS
+  FIXED
+  CUSTOM
+  PERCENT_SALE_PRICE
+}
+
+/// สถานะค่านายหน้า (SRS 4.4)
+enum CommissionStatus {
+  PENDING_CALC
+  PENDING_REVIEW
+  APPROVED
+  AWAITING_OWNER_PAYMENT
+  RECEIVED
+  AWAITING_PAYOUT
+  PAID
+  CANCELLED
+}
+
+enum ShareType {
+  PERCENT
+  AMOUNT
+}
+
+enum PayoutStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  LINE
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  ARCHIVE
+  RESTORE
+  APPROVE
+  REJECT
+  TRANSFER
+  STATUS_CHANGE
+  EXPORT
+  VIEW_SENSITIVE
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+}
+
+// ---------------------------------------------------------------------
+// ผู้ใช้ ทีม บทบาท สิทธิ์
+// ---------------------------------------------------------------------
+
+model User {
+  id                String    @id @default(uuid()) @db.Uuid
+  email             String    @unique
+  passwordHash      String    @map("password_hash")
+  fullName          String    @map("full_name")
+  nickname          String?
+  phone             String?
+  teamId            String?   @map("team_id") @db.Uuid
+  isActive          Boolean   @default(true) @map("is_active")
+  /// ฟรีแลนซ์หรือพนักงาน — ใช้ตัดสินการหักภาษี ณ ที่จ่าย (D06)
+  isFreelance       Boolean   @default(false) @map("is_freelance")
+  totpSecret        String?   @map("totp_secret")
+  totpEnabled       Boolean   @default(false) @map("totp_enabled")
+  failedLoginCount  Int       @default(0) @map("failed_login_count")
+  lockedUntil       DateTime? @map("locked_until") @db.Timestamptz(6)
+  lastLoginAt       DateTime? @map("last_login_at") @db.Timestamptz(6)
+  lineUserId        String?   @unique @map("line_user_id")
+  /// ช่องทางแจ้งเตือนต่อประเภท เช่น {"appointment.reminder": ["IN_APP","LINE"]}
+  notificationPrefs Json      @default("{}") @map("notification_prefs")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById       String?   @map("created_by_id") @db.Uuid
+  updatedById       String?   @map("updated_by_id") @db.Uuid
+  archivedAt        DateTime? @map("archived_at") @db.Timestamptz(6)
+  archivedById      String?   @map("archived_by_id") @db.Uuid
+
+  team                Team?                @relation("TeamMembers", fields: [teamId], references: [id])
+  managedTeams        Team[]               @relation("TeamManager")
+  roles               UserRole[]
+  ownersManaged       Owner[]
+  assetsPrimary       Asset[]              @relation("AssetPrimaryAgent")
+  assetAgents         AssetAgent[]
+  leadsOwned          Lead[]               @relation("LeadOwner")
+  assignmentsFrom     LeadAssignment[]     @relation("AssignmentFrom")
+  assignmentsTo       LeadAssignment[]     @relation("AssignmentTo")
+  assignmentsBy       LeadAssignment[]     @relation("AssignmentBy")
+  collaborations      LeadCollaborator[]   @relation("CollaboratorUser")
+  activities          Activity[]
+  offers              LeadOffer[]
+  appointmentsShown   Appointment[]        @relation("AppointmentAgent")
+  appointmentsCoord   Appointment[]        @relation("AppointmentCoordinator")
+  commissionSplits    CommissionSplit[]
+  payouts             CommissionPayout[]
+  notifications       Notification[]
+  listingsApproved    Listing[]            @relation("ListingApprover")
+  saleDeals           SaleDeal[]
+  paymentsReceived    Payment[]            @relation("PaymentReceiver")
+  commissionsApproved Commission[]         @relation("CommissionApprover")
+  revisionsApproved   CommissionRevision[] @relation("RevisionApprover")
+  refreshTokens       RefreshToken[]
+  passwordResets      PasswordResetToken[]
+  bookingsReceived    Booking[]            @relation("BookingReceiver")
+
+  @@index([teamId])
+  @@map("users")
+}
+
+model Team {
+  id         String    @id @default(uuid()) @db.Uuid
+  name       String    @unique
+  managerId  String?   @map("manager_id") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  manager User?  @relation("TeamManager", fields: [managerId], references: [id])
+  members User[] @relation("TeamMembers")
+
+  @@map("teams")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// ADMIN, MANAGER, AGENT, ACCOUNTING + บทบาทที่ Admin สร้างเพิ่ม
+  code        String   @unique
+  name        String
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String @id @default(uuid()) @db.Uuid
+  /// รูปแบบ <module>.<action> เช่น lead.read, commission.approve
+  code        String @unique
+  module      String
+  description String
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String    @map("role_id") @db.Uuid
+  permissionId String    @map("permission_id") @db.Uuid
+  scope        DataScope @default(ALL)
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// ---------------------------------------------------------------------
+// เจ้าของทรัพย์ โครงการ อาคาร สินทรัพย์
+// ---------------------------------------------------------------------
+
+model Owner {
+  id             String      @id @default(uuid()) @db.Uuid
+  /// รหัสอัตโนมัติ OW-000001
+  code           String      @unique
+  /// D02 (สมมติฐาน): ระเบียน "บริษัท" 1 รายการ เป็นเจ้าของห้องประเภท OWNER
+  isCompany      Boolean     @default(false) @map("is_company")
+  fullName       String      @map("full_name")
+  /// E.164 ผ่าน normalizePhone() — ใช้ตรวจซ้ำ (ไม่ unique เพราะ SRS ให้เตือน ไม่ห้าม)
+  phone          String?
+  lineId         String?     @map("line_id")
+  email          String?
+  sourceChannel  LeadSource? @map("source_channel")
+  firstContactAt DateTime?   @map("first_contact_at") @db.Date
+  agentId        String?     @map("agent_id") @db.Uuid
+  status         OwnerStatus @default(NEW)
+  note           String?
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById    String?     @map("created_by_id") @db.Uuid
+  updatedById    String?     @map("updated_by_id") @db.Uuid
+  archivedAt     DateTime?   @map("archived_at") @db.Timestamptz(6)
+  archivedById   String?     @map("archived_by_id") @db.Uuid
+
+  agent      User?              @relation(fields: [agentId], references: [id])
+  assets     Asset[]
+  buildings  Building[]
+  agreements ListingAgreement[]
+  contracts  Contract[]
+  saleDeals  SaleDeal[]
+
+  @@index([phone])
+  @@index([lineId])
+  @@index([email])
+  @@index([agentId])
+  @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "owners_full_name_trgm_idx")
+  @@map("owners")
+}
+
+model Project {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique
+  nameEn      String?   @map("name_en")
+  developer   String?
+  address     String?
+  district    String?
+  province    String?
+  latitude    Decimal?  @db.Decimal(9, 6)
+  longitude   Decimal?  @db.Decimal(9, 6)
+  /// สถานีรถไฟฟ้าใกล้เคียง เช่น ["BTS อ่อนนุช"]
+  nearTransit String[]  @map("near_transit")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  buildings Building[]
+  assets    Asset[]
+  leads     Lead[]
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "projects_name_trgm_idx")
+  @@map("projects")
+}
+
+/// อาคาร 1 หลังที่มีหลายยูนิต (อพาร์ตเมนต์/หอพัก) — ยูนิตคือ Asset ที่ชี้ buildingId
+model Building {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  projectId   String?   @map("project_id") @db.Uuid
+  ownerId     String    @map("owner_id") @db.Uuid
+  address     String?
+  totalFloors Int?      @map("total_floors")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  project Project? @relation(fields: [projectId], references: [id])
+  owner   Owner    @relation(fields: [ownerId], references: [id])
+  units   Asset[]
+
+  @@map("buildings")
+}
+
+model Asset {
+  id             String        @id @default(uuid()) @db.Uuid
+  /// รหัสทรัพย์สินไม่ซ้ำ PR-000001 (SRS 2.2)
+  code           String        @unique
+  category       AssetCategory
+  ownershipType  OwnershipType @map("ownership_type")
+  ownerId        String        @map("owner_id") @db.Uuid
+  projectId      String?       @map("project_id") @db.Uuid
+  buildingId     String?       @map("building_id") @db.Uuid
+  /// ชื่อตึก/อาคารในโครงการ เช่น Tower A
+  tower          String?
+  unitNo         String?       @map("unit_no")
+  floor          Int?
+  address        String?
+  district       String?
+  province       String?
+  latitude       Decimal?      @db.Decimal(9, 6)
+  longitude      Decimal?      @db.Decimal(9, 6)
+  /// พื้นที่ใช้สอย (ตร.ม.)
+  areaSqm        Decimal?      @map("area_sqm") @db.Decimal(10, 2)
+  roomType       RoomType?     @map("room_type")
+  bedrooms       Int?
+  bathrooms      Int?
+  furniture      String?
+  appliances     String[]
+  petAllowed     Boolean       @default(false) @map("pet_allowed")
+  /// ฟิลด์เฉพาะประเภท ตรวจด้วย assetAttributesSchemas ใน @rrs/shared
+  attributes     Json          @default("{}")
+  listingUrls    String[]      @map("listing_urls")
+  /// ราคาที่ต้องการ/ราคาต่ำสุดที่อนุมัติให้เสนอได้ — min* เป็นข้อมูลลับ (field-level permission)
+  rentPrice      Decimal?      @map("rent_price") @db.Decimal(14, 2)
+  minRentPrice   Decimal?      @map("min_rent_price") @db.Decimal(14, 2)
+  salePrice      Decimal?      @map("sale_price") @db.Decimal(14, 2)
+  minSalePrice   Decimal?      @map("min_sale_price") @db.Decimal(14, 2)
+  forRent        Boolean       @default(true) @map("for_rent")
+  forSale        Boolean       @default(false) @map("for_sale")
+  availableFrom  DateTime?     @map("available_from") @db.Date
+  status         AssetStatus   @default(AVAILABLE)
+  primaryAgentId String?       @map("primary_agent_id") @db.Uuid
+  internalNote   String?       @map("internal_note")
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById    String?       @map("created_by_id") @db.Uuid
+  updatedById    String?       @map("updated_by_id") @db.Uuid
+  archivedAt     DateTime?     @map("archived_at") @db.Timestamptz(6)
+  archivedById   String?       @map("archived_by_id") @db.Uuid
+
+  owner            Owner              @relation(fields: [ownerId], references: [id])
+  project          Project?           @relation(fields: [projectId], references: [id])
+  building         Building?          @relation(fields: [buildingId], references: [id])
+  primaryAgent     User?              @relation("AssetPrimaryAgent", fields: [primaryAgentId], references: [id])
+  agents           AssetAgent[]
+  media            AssetMedia[]
+  agreements       ListingAgreement[]
+  listings         Listing[]
+  offers           LeadOffer[]
+  appointmentItems AppointmentItem[]
+  bookings         Booking[]
+  contracts        Contract[]
+  saleDeals        SaleDeal[]
+  payments         Payment[]
+  expenses         Expense[]
+  commissions      Commission[]
+
+  @@index([category, status])
+  @@index([ownershipType])
+  @@index([ownerId])
+  @@index([projectId])
+  @@index([buildingId])
+  @@index([primaryAgentId])
+  @@index([unitNo(ops: raw("gin_trgm_ops"))], type: Gin, map: "assets_unit_no_trgm_idx")
+  @@map("assets")
+}
+
+/// Agent หลายคนต่อสินทรัพย์ (SRS 2.2 ข้อกำหนดสำคัญ)
+model AssetAgent {
+  assetId   String         @map("asset_id") @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  role      AssetAgentRole @default(CO_AGENT)
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+
+  @@id([assetId, userId])
+  @@index([userId])
+  @@map("asset_agents")
+}
+
+model AssetMedia {
+  id        String   @id @default(uuid()) @db.Uuid
+  assetId   String   @map("asset_id") @db.Uuid
+  fileId    String   @map("file_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  caption   String?
+  isCover   Boolean  @default(false) @map("is_cover")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  file  File  @relation(fields: [fileId], references: [id])
+
+  @@index([assetId, sortOrder])
+  @@map("asset_media")
+}
+
+/// สัญญาฝากเช่า/ฝากขายกับเจ้าของทรัพย์ — เก็บเป็นประวัติ ไม่เขียนทับ
+model ListingAgreement {
+  id                String            @id @default(uuid()) @db.Uuid
+  assetId           String            @map("asset_id") @db.Uuid
+  ownerId           String            @map("owner_id") @db.Uuid
+  transactionType   TransactionType   @map("transaction_type")
+  startDate         DateTime          @map("start_date") @db.Date
+  /// วันหมดสัญญาฝากเช่า (SRS 2.2)
+  endDate           DateTime?         @map("end_date") @db.Date
+  commissionFormula CommissionFormula @map("commission_formula")
+  commissionParams  Json              @default("{}") @map("commission_params")
+  exclusive         Boolean           @default(false)
+  status            AgreementStatus   @default(ACTIVE)
+  fileId            String?           @map("file_id") @db.Uuid
+  note              String?
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById       String?           @map("created_by_id") @db.Uuid
+  archivedAt        DateTime?         @map("archived_at") @db.Timestamptz(6)
+
+  asset Asset @relation(fields: [assetId], references: [id])
+  owner Owner @relation(fields: [ownerId], references: [id])
+  file  File? @relation(fields: [fileId], references: [id])
+
+  @@index([assetId, status])
+  @@index([endDate])
+  @@map("listing_agreements")
+}
+
+/// ประกาศบน Public Portal — สินทรัพย์ 1 รายการมีประกาศเช่าและขายพร้อมกันได้
+model Listing {
+  id            String          @id @default(uuid()) @db.Uuid
+  assetId       String          @map("asset_id") @db.Uuid
+  type          TransactionType
+  status        ListingStatus   @default(DRAFT)
+  slug          String          @unique
+  titleTh       String          @map("title_th")
+  titleEn       String?         @map("title_en")
+  descriptionTh String?         @map("description_th")
+  descriptionEn String?         @map("description_en")
+  price         Decimal         @db.Decimal(14, 2)
+  expiresAt     DateTime?       @map("expires_at") @db.Timestamptz(6)
+  approvedById  String?         @map("approved_by_id") @db.Uuid
+  approvedAt    DateTime?       @map("approved_at") @db.Timestamptz(6)
+  publishedAt   DateTime?       @map("published_at") @db.Timestamptz(6)
+  viewCount     Int             @default(0) @map("view_count")
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById   String?         @map("created_by_id") @db.Uuid
+  archivedAt    DateTime?       @map("archived_at") @db.Timestamptz(6)
+
+  asset      Asset  @relation(fields: [assetId], references: [id])
+  approvedBy User?  @relation("ListingApprover", fields: [approvedById], references: [id])
+  leads      Lead[]
+
+  @@index([status, type])
+  @@index([assetId])
+  @@map("listings")
+}
+
+// ---------------------------------------------------------------------
+// Lead / CRM
+// ---------------------------------------------------------------------
+
+model Lead {
+  id                 String         @id @default(uuid()) @db.Uuid
+  /// LD-000001
+  code               String         @unique
+  intent             LeadIntent     @default(RENT)
+  fullName           String         @map("full_name")
+  phone              String?
+  lineId             String?        @map("line_id")
+  email              String?
+  nationality        String?
+  budgetMin          Decimal?       @map("budget_min") @db.Decimal(14, 2)
+  budgetMax          Decimal?       @map("budget_max") @db.Decimal(14, 2)
+  preferredLocation  String?        @map("preferred_location")
+  preferredProjectId String?        @map("preferred_project_id") @db.Uuid
+  preferredCategory  AssetCategory? @map("preferred_category")
+  preferredRoomType  RoomType?      @map("preferred_room_type")
+  minAreaSqm         Decimal?       @map("min_area_sqm") @db.Decimal(10, 2)
+  occupants          Int?
+  moveInDate         DateTime?      @map("move_in_date") @db.Date
+  leaseMonths        Int?           @map("lease_months")
+  petRequired        Boolean        @default(false) @map("pet_required")
+  specialNote        String?        @map("special_note")
+  source             LeadSource
+  sourceListingId    String?        @map("source_listing_id") @db.Uuid
+  /// Agent ผู้รับผิดชอบหลัก (Lead Ownership) — ประวัติการโอนอยู่ใน lead_assignments
+  ownerAgentId       String         @map("owner_agent_id") @db.Uuid
+  status             LeadStatus     @default(NEW)
+  statusReason       String?        @map("status_reason")
+  lastActivityAt     DateTime?      @map("last_activity_at") @db.Timestamptz(6)
+  nextFollowUpAt     DateTime?      @map("next_follow_up_at") @db.Timestamptz(6)
+  /// PDPA: ความยินยอม
+  consentAt          DateTime?      @map("consent_at") @db.Timestamptz(6)
+  consentText        String?        @map("consent_text")
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById        String?        @map("created_by_id") @db.Uuid
+  updatedById        String?        @map("updated_by_id") @db.Uuid
+  archivedAt         DateTime?      @map("archived_at") @db.Timestamptz(6)
+  archivedById       String?        @map("archived_by_id") @db.Uuid
+
+  preferredProject Project?           @relation(fields: [preferredProjectId], references: [id])
+  sourceListing    Listing?           @relation(fields: [sourceListingId], references: [id])
+  ownerAgent       User               @relation("LeadOwner", fields: [ownerAgentId], references: [id])
+  assignments      LeadAssignment[]
+  collaborators    LeadCollaborator[]
+  activities       Activity[]
+  offers           LeadOffer[]
+  appointments     Appointment[]
+  bookings         Booking[]
+  contracts        Contract[]
+  saleDeals        SaleDeal[]
+
+  @@index([phone])
+  @@index([lineId])
+  @@index([email])
+  @@index([ownerAgentId, status])
+  @@index([nextFollowUpAt])
+  @@index([fullName(ops: raw("gin_trgm_ops"))], type: Gin, map: "leads_full_name_trgm_idx")
+  @@index([phone(ops: raw("gin_trgm_ops"))], type: Gin, map: "leads_phone_trgm_idx")
+  @@map("leads")
+}
+
+/// ประวัติโอนเจ้าของ lead — สร้างใหม่ทุกครั้ง ไม่แก้ไข
+model LeadAssignment {
+  id           String   @id @default(uuid()) @db.Uuid
+  leadId       String   @map("lead_id") @db.Uuid
+  fromUserId   String?  @map("from_user_id") @db.Uuid
+  toUserId     String   @map("to_user_id") @db.Uuid
+  assignedById String   @map("assigned_by_id") @db.Uuid
+  reason       String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  lead       Lead  @relation(fields: [leadId], references: [id])
+  fromUser   User? @relation("AssignmentFrom", fields: [fromUserId], references: [id])
+  toUser     User  @relation("AssignmentTo", fields: [toUserId], references: [id])
+  assignedBy User  @relation("AssignmentBy", fields: [assignedById], references: [id])
+
+  @@index([leadId, createdAt])
+  @@map("lead_assignments")
+}
+
+model LeadCollaborator {
+  leadId      String             @map("lead_id") @db.Uuid
+  userId      String             @map("user_id") @db.Uuid
+  role        DealRole
+  status      CollaboratorStatus @default(PENDING)
+  requestedAt DateTime           @default(now()) @map("requested_at") @db.Timestamptz(6)
+  decidedById String?            @map("decided_by_id") @db.Uuid
+  decidedAt   DateTime?          @map("decided_at") @db.Timestamptz(6)
+
+  lead Lead @relation(fields: [leadId], references: [id])
+  user User @relation("CollaboratorUser", fields: [userId], references: [id])
+
+  @@id([leadId, userId, role])
+  @@index([userId])
+  @@map("lead_collaborators")
+}
+
+/// ประวัติการโทร แชต โน้ต ผลติดตาม (SRS 2.4)
+model Activity {
+  id             String           @id @default(uuid()) @db.Uuid
+  type           ActivityType
+  leadId         String?          @map("lead_id") @db.Uuid
+  ownerId        String?          @map("owner_id") @db.Uuid
+  assetId        String?          @map("asset_id") @db.Uuid
+  appointmentId  String?          @map("appointment_id") @db.Uuid
+  body           String
+  outcome        FollowUpOutcome?
+  nextFollowUpAt DateTime?        @map("next_follow_up_at") @db.Timestamptz(6)
+  createdById    String           @map("created_by_id") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  lead      Lead? @relation(fields: [leadId], references: [id])
+  createdBy User  @relation(fields: [createdById], references: [id])
+
+  @@index([leadId, createdAt])
+  @@index([ownerId, createdAt])
+  @@map("activities")
+}
+
+/// ห้องที่ Agent เสนอให้ลูกค้า (SRS 3.1)
+model LeadOffer {
+  id             String    @id @default(uuid()) @db.Uuid
+  leadId         String    @map("lead_id") @db.Uuid
+  assetId        String    @map("asset_id") @db.Uuid
+  offeredById    String    @map("offered_by_id") @db.Uuid
+  offeredPrice   Decimal?  @map("offered_price") @db.Decimal(14, 2)
+  note           String?
+  shareToken     String?   @unique @map("share_token")
+  shareExpiresAt DateTime? @map("share_expires_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  lead      Lead  @relation(fields: [leadId], references: [id])
+  asset     Asset @relation(fields: [assetId], references: [id])
+  offeredBy User  @relation(fields: [offeredById], references: [id])
+
+  @@unique([leadId, assetId])
+  @@map("lead_offers")
+}
+
+// ---------------------------------------------------------------------
+// นัดดูห้อง
+// ---------------------------------------------------------------------
+
+model Appointment {
+  id                String            @id @default(uuid()) @db.Uuid
+  /// AP-000001
+  code              String            @unique
+  leadId            String            @map("lead_id") @db.Uuid
+  startsAt          DateTime          @map("starts_at") @db.Timestamptz(6)
+  endsAt            DateTime          @map("ends_at") @db.Timestamptz(6)
+  location          String?
+  /// Agent ผู้พาลูกค้าดูห้อง — ใช้ตรวจนัดซ้อน (เตือน ไม่บล็อก)
+  agentId           String            @map("agent_id") @db.Uuid
+  coordinatorId     String?           @map("coordinator_id") @db.Uuid
+  /// เจ้าของห้องหรือผู้ประสานงานภายนอก
+  coordinatorName   String?           @map("coordinator_name")
+  coordinatorPhone  String?           @map("coordinator_phone")
+  status            AppointmentStatus @default(PENDING)
+  rescheduledFromId String?           @unique @map("rescheduled_from_id") @db.Uuid
+  note              String?
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById       String?           @map("created_by_id") @db.Uuid
+  updatedById       String?           @map("updated_by_id") @db.Uuid
+
+  lead            Lead              @relation(fields: [leadId], references: [id])
+  agent           User              @relation("AppointmentAgent", fields: [agentId], references: [id])
+  coordinator     User?             @relation("AppointmentCoordinator", fields: [coordinatorId], references: [id])
+  rescheduledFrom Appointment?      @relation("Reschedule", fields: [rescheduledFromId], references: [id])
+  rescheduledTo   Appointment?      @relation("Reschedule")
+  items           AppointmentItem[]
+
+  @@index([agentId, startsAt])
+  @@index([leadId])
+  @@index([startsAt])
+  @@map("appointments")
+}
+
+/// ห้องในนัด 1 ครั้ง (นัดหลายห้องได้) + ผลติดตามรายห้อง (SRS 3.3)
+model AppointmentItem {
+  appointmentId String           @map("appointment_id") @db.Uuid
+  assetId       String           @map("asset_id") @db.Uuid
+  sortOrder     Int              @default(0) @map("sort_order")
+  outcome       FollowUpOutcome?
+  outcomeNote   String?          @map("outcome_note")
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  asset       Asset       @relation(fields: [assetId], references: [id])
+
+  @@id([appointmentId, assetId])
+  @@index([assetId])
+  @@map("appointment_items")
+}
+
+// ---------------------------------------------------------------------
+// จอง สัญญาเช่า งานขาย
+// ---------------------------------------------------------------------
+
+/// การจอง (SRS 3.4) — สถานะ PAID/CONVERTED ล็อกช่วงวันที่ของห้อง (EXCLUDE ใน 0002)
+model Booking {
+  id              String        @id @default(uuid()) @db.Uuid
+  /// BK-000001
+  code            String        @unique
+  leadId          String        @map("lead_id") @db.Uuid
+  assetId         String        @map("asset_id") @db.Uuid
+  monthlyRent     Decimal       @map("monthly_rent") @db.Decimal(14, 2)
+  bookingFee      Decimal       @default(0) @map("booking_fee") @db.Decimal(14, 2)
+  securityDeposit Decimal       @default(0) @map("security_deposit") @db.Decimal(14, 2)
+  advanceRent     Decimal       @default(0) @map("advance_rent") @db.Decimal(14, 2)
+  /// ช่วงสัญญา [startDate, endDate] รวมวันสุดท้าย
+  startDate       DateTime      @map("start_date") @db.Date
+  endDate         DateTime      @map("end_date") @db.Date
+  status          BookingStatus @default(PENDING_PAYMENT)
+  paidAt          DateTime?     @map("paid_at") @db.Timestamptz(6)
+  receivedById    String?       @map("received_by_id") @db.Uuid
+  cancelReason    String?       @map("cancel_reason")
+  /// ยกเลิกแล้วยึดเงินจองหรือไม่ (D07)
+  feeForfeited    Boolean?      @map("fee_forfeited")
+  note            String?
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById     String?       @map("created_by_id") @db.Uuid
+  updatedById     String?       @map("updated_by_id") @db.Uuid
+
+  lead       Lead       @relation(fields: [leadId], references: [id])
+  asset      Asset      @relation(fields: [assetId], references: [id])
+  receivedBy User?      @relation("BookingReceiver", fields: [receivedById], references: [id])
+  contracts  Contract[]
+  payments   Payment[]
+
+  @@index([assetId, status])
+  @@index([leadId])
+  @@map("bookings")
+}
+
+/// สัญญาเช่า (SRS 3.5–3.6) — มีผลแล้วห้าม UPDATE เนื้อหา: แก้ = แถวใหม่ revision+1 (แถวเดิม SUPERSEDED)
+/// ต่อสัญญา = สัญญาใหม่ previousContractId ชี้สัญญาเดิม
+model Contract {
+  id                 String             @id @default(uuid()) @db.Uuid
+  /// เลขที่สัญญา LS-2026-0001 (+ "-R2" เมื่อเป็น revision)
+  contractNo         String             @unique @map("contract_no")
+  revision           Int                @default(1)
+  revisionOfId       String?            @map("revision_of_id") @db.Uuid
+  previousContractId String?            @map("previous_contract_id") @db.Uuid
+  bookingId          String?            @map("booking_id") @db.Uuid
+  assetId            String             @map("asset_id") @db.Uuid
+  leadId             String             @map("lead_id") @db.Uuid
+  ownerId            String             @map("owner_id") @db.Uuid
+  monthlyRent        Decimal            @map("monthly_rent") @db.Decimal(14, 2)
+  securityDeposit    Decimal            @default(0) @map("security_deposit") @db.Decimal(14, 2)
+  advanceRent        Decimal            @default(0) @map("advance_rent") @db.Decimal(14, 2)
+  startDate          DateTime           @map("start_date") @db.Date
+  endDate            DateTime           @map("end_date") @db.Date
+  status             ContractStatus     @default(DRAFT)
+  signedAt           DateTime?          @map("signed_at") @db.Timestamptz(6)
+  terminatedAt       DateTime?          @map("terminated_at") @db.Date
+  terminationReason  String?            @map("termination_reason")
+  /// วันแจ้งเตือนก่อนหมดสัญญา ปรับได้ (SRS 3.5)
+  reminderDays       Int[]              @default([90, 60, 30]) @map("reminder_days")
+  commissionFormula  CommissionFormula? @map("commission_formula")
+  commissionParams   Json               @default("{}") @map("commission_params")
+  fileId             String?            @map("file_id") @db.Uuid
+  note               String?
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById        String?            @map("created_by_id") @db.Uuid
+  updatedById        String?            @map("updated_by_id") @db.Uuid
+
+  revisionOf       Contract?       @relation("ContractRevision", fields: [revisionOfId], references: [id])
+  revisions        Contract[]      @relation("ContractRevision")
+  previousContract Contract?       @relation("ContractRenewal", fields: [previousContractId], references: [id])
+  renewals         Contract[]      @relation("ContractRenewal")
+  booking          Booking?        @relation(fields: [bookingId], references: [id])
+  asset            Asset           @relation(fields: [assetId], references: [id])
+  lead             Lead            @relation(fields: [leadId], references: [id])
+  owner            Owner           @relation(fields: [ownerId], references: [id])
+  file             File?           @relation(fields: [fileId], references: [id])
+  parties          ContractParty[]
+  rentSchedules    RentSchedule[]
+  payments         Payment[]
+  commission       Commission?
+
+  @@index([assetId, status])
+  @@index([leadId])
+  @@index([endDate])
+  @@map("contracts")
+}
+
+model ContractParty {
+  id         String    @id @default(uuid()) @db.Uuid
+  contractId String    @map("contract_id") @db.Uuid
+  partyType  PartyType @map("party_type")
+  fullName   String    @map("full_name")
+  idNumber   String?   @map("id_number")
+  phone      String?
+  email      String?
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId])
+  @@map("contract_parties")
+}
+
+/// ดีลขาย (design ข้อ 7.1)
+model SaleDeal {
+  id                String             @id @default(uuid()) @db.Uuid
+  /// SD-000001
+  code              String             @unique
+  leadId            String             @map("lead_id") @db.Uuid
+  assetId           String             @map("asset_id") @db.Uuid
+  ownerId           String             @map("owner_id") @db.Uuid
+  agentId           String             @map("agent_id") @db.Uuid
+  stage             SaleStage          @default(INTERESTED)
+  askingPrice       Decimal?           @map("asking_price") @db.Decimal(14, 2)
+  offeredPrice      Decimal?           @map("offered_price") @db.Decimal(14, 2)
+  agreedPrice       Decimal?           @map("agreed_price") @db.Decimal(14, 2)
+  depositAmount     Decimal?           @map("deposit_amount") @db.Decimal(14, 2)
+  spaSignedAt       DateTime?          @map("spa_signed_at") @db.Date
+  transferDate      DateTime?          @map("transfer_date") @db.Date
+  transferFeePayer  FeePayer?          @map("transfer_fee_payer")
+  loanBank          String?            @map("loan_bank")
+  commissionFormula CommissionFormula? @map("commission_formula")
+  commissionParams  Json               @default("{}") @map("commission_params")
+  cancelReason      String?            @map("cancel_reason")
+  note              String?
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById       String?            @map("created_by_id") @db.Uuid
+  updatedById       String?            @map("updated_by_id") @db.Uuid
+
+  lead       Lead        @relation(fields: [leadId], references: [id])
+  asset      Asset       @relation(fields: [assetId], references: [id])
+  owner      Owner       @relation(fields: [ownerId], references: [id])
+  agent      User        @relation(fields: [agentId], references: [id])
+  payments   Payment[]
+  commission Commission?
+
+  @@index([assetId, stage])
+  @@index([agentId, stage])
+  @@map("sale_deals")
+}
+
+// ---------------------------------------------------------------------
+// การเงิน
+// ---------------------------------------------------------------------
+
+/// รายการรับ/จ่ายเงินทุกประเภท พร้อมหลักฐาน (SRS 3.4, 4.1, 4.4)
+model Payment {
+  id             String           @id @default(uuid()) @db.Uuid
+  type           PaymentType
+  direction      PaymentDirection @default(IN)
+  amount         Decimal          @db.Decimal(14, 2)
+  paidAt         DateTime         @map("paid_at") @db.Timestamptz(6)
+  method         PaymentMethod
+  reference      String?
+  assetId        String?          @map("asset_id") @db.Uuid
+  bookingId      String?          @map("booking_id") @db.Uuid
+  contractId     String?          @map("contract_id") @db.Uuid
+  saleDealId     String?          @map("sale_deal_id") @db.Uuid
+  rentScheduleId String?          @map("rent_schedule_id") @db.Uuid
+  commissionId   String?          @map("commission_id") @db.Uuid
+  receivedById   String?          @map("received_by_id") @db.Uuid
+  proofFileId    String?          @map("proof_file_id") @db.Uuid
+  note           String?
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById    String?          @map("created_by_id") @db.Uuid
+  archivedAt     DateTime?        @map("archived_at") @db.Timestamptz(6)
+  archivedById   String?          @map("archived_by_id") @db.Uuid
+
+  asset        Asset?        @relation(fields: [assetId], references: [id])
+  booking      Booking?      @relation(fields: [bookingId], references: [id])
+  contract     Contract?     @relation(fields: [contractId], references: [id])
+  saleDeal     SaleDeal?     @relation(fields: [saleDealId], references: [id])
+  rentSchedule RentSchedule? @relation(fields: [rentScheduleId], references: [id])
+  commission   Commission?   @relation(fields: [commissionId], references: [id])
+  receivedBy   User?         @relation("PaymentReceiver", fields: [receivedById], references: [id])
+  proofFile    File?         @relation(fields: [proofFileId], references: [id])
+
+  @@index([assetId, paidAt])
+  @@index([type, paidAt])
+  @@index([contractId])
+  @@map("payments")
+}
+
+/// งวดค่าเช่ารายเดือนของห้อง OWNER (D04 สมมติฐาน: ติดตามค่าเช่ารายเดือนในระบบ)
+model RentSchedule {
+  id          String             @id @default(uuid()) @db.Uuid
+  contractId  String             @map("contract_id") @db.Uuid
+  periodStart DateTime           @map("period_start") @db.Date
+  periodEnd   DateTime           @map("period_end") @db.Date
+  dueDate     DateTime           @map("due_date") @db.Date
+  amountDue   Decimal            @map("amount_due") @db.Decimal(14, 2)
+  amountPaid  Decimal            @default(0) @map("amount_paid") @db.Decimal(14, 2)
+  status      RentScheduleStatus @default(DUE)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  contract Contract  @relation(fields: [contractId], references: [id])
+  payments Payment[]
+
+  @@unique([contractId, periodStart])
+  @@index([dueDate, status])
+  @@map("rent_schedules")
+}
+
+model Expense {
+  id          String          @id @default(uuid()) @db.Uuid
+  assetId     String          @map("asset_id") @db.Uuid
+  category    ExpenseCategory
+  amount      Decimal         @db.Decimal(14, 2)
+  incurredAt  DateTime        @map("incurred_at") @db.Date
+  paidAt      DateTime?       @map("paid_at") @db.Date
+  vendor      String?
+  proofFileId String?         @map("proof_file_id") @db.Uuid
+  note        String?
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?         @map("created_by_id") @db.Uuid
+  archivedAt  DateTime?       @map("archived_at") @db.Timestamptz(6)
+
+  asset     Asset @relation(fields: [assetId], references: [id])
+  proofFile File? @relation(fields: [proofFileId], references: [id])
+
+  @@index([assetId, incurredAt])
+  @@map("expenses")
+}
+
+// ---------------------------------------------------------------------
+// ค่านายหน้า (design ข้อ 6)
+// ---------------------------------------------------------------------
+
+/// 1 รายการต่อสัญญาเช่าหรือดีลขาย (CHECK: ต้องมีอย่างใดอย่างหนึ่งพอดี — 0002)
+model Commission {
+  id                String            @id @default(uuid()) @db.Uuid
+  contractId        String?           @unique @map("contract_id") @db.Uuid
+  saleDealId        String?           @unique @map("sale_deal_id") @db.Uuid
+  assetId           String            @map("asset_id") @db.Uuid
+  ownershipType     OwnershipType     @map("ownership_type")
+  formula           CommissionFormula
+  params            Json              @default("{}")
+  /// ฐานที่ใช้คำนวณ (ค่าเช่าต่อเดือน หรือราคาขาย)
+  baseAmount        Decimal           @map("base_amount") @db.Decimal(14, 2)
+  /// เดือนของสัญญา ณ ตอนคำนวณ
+  termMonths        Int?              @map("term_months")
+  totalAmount       Decimal           @default(0) @map("total_amount") @db.Decimal(14, 2)
+  status            CommissionStatus  @default(PENDING_CALC)
+  currentRevision   Int               @default(1) @map("current_revision")
+  approvedById      String?           @map("approved_by_id") @db.Uuid
+  approvedAt        DateTime?         @map("approved_at") @db.Timestamptz(6)
+  ownerPaymentDueAt DateTime?         @map("owner_payment_due_at") @db.Date
+  receivedAt        DateTime?         @map("received_at") @db.Timestamptz(6)
+  note              String?
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  createdById       String?           @map("created_by_id") @db.Uuid
+  updatedById       String?           @map("updated_by_id") @db.Uuid
+
+  contract   Contract?            @relation(fields: [contractId], references: [id])
+  saleDeal   SaleDeal?            @relation(fields: [saleDealId], references: [id])
+  asset      Asset                @relation(fields: [assetId], references: [id])
+  approvedBy User?                @relation("CommissionApprover", fields: [approvedById], references: [id])
+  splits     CommissionSplit[]
+  revisions  CommissionRevision[]
+  payments   Payment[]
+
+  @@index([status])
+  @@index([assetId])
+  @@map("commissions")
+}
+
+/// ส่วนแบ่งตามบทบาท — ผูกกับ revision; แก้หลังอนุมัติ = ชุดใหม่ใน revision ถัดไป
+model CommissionSplit {
+  id             String    @id @default(uuid()) @db.Uuid
+  commissionId   String    @map("commission_id") @db.Uuid
+  revision       Int
+  role           DealRole
+  /// null = บริษัท
+  userId         String?   @map("user_id") @db.Uuid
+  shareType      ShareType @map("share_type")
+  sharePercent   Decimal?  @map("share_percent") @db.Decimal(5, 2)
+  amount         Decimal   @db.Decimal(14, 2)
+  withholdingTax Decimal   @default(0) @map("withholding_tax") @db.Decimal(14, 2)
+  netAmount      Decimal   @map("net_amount") @db.Decimal(14, 2)
+  payoutId       String?   @map("payout_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  commission Commission        @relation(fields: [commissionId], references: [id])
+  user       User?             @relation(fields: [userId], references: [id])
+  payout     CommissionPayout? @relation(fields: [payoutId], references: [id])
+
+  @@index([commissionId, revision])
+  @@index([userId])
+  @@index([payoutId])
+  @@map("commission_splits")
+}
+
+/// snapshot ทุกครั้งที่อนุมัติหรือแก้ไข (SRS 4.4: ห้ามแก้ยอดเดิมโดยไม่มีประวัติ)
+model CommissionRevision {
+  id           String    @id @default(uuid()) @db.Uuid
+  commissionId String    @map("commission_id") @db.Uuid
+  revision     Int
+  snapshot     Json
+  reason       String?
+  createdById  String    @map("created_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  approvedById String?   @map("approved_by_id") @db.Uuid
+  approvedAt   DateTime? @map("approved_at") @db.Timestamptz(6)
+
+  commission Commission @relation(fields: [commissionId], references: [id])
+  approvedBy User?      @relation("RevisionApprover", fields: [approvedById], references: [id])
+
+  @@unique([commissionId, revision])
+  @@map("commission_revisions")
+}
+
+/// รอบจ่ายส่วนแบ่งให้ Agent (รวมหลายดีลได้)
+model CommissionPayout {
+  id          String         @id @default(uuid()) @db.Uuid
+  userId      String         @map("user_id") @db.Uuid
+  periodLabel String         @map("period_label")
+  totalAmount Decimal        @map("total_amount") @db.Decimal(14, 2)
+  status      PayoutStatus   @default(PENDING)
+  paidAt      DateTime?      @map("paid_at") @db.Timestamptz(6)
+  method      PaymentMethod?
+  proofFileId String?        @map("proof_file_id") @db.Uuid
+  note        String?
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdById String?        @map("created_by_id") @db.Uuid
+
+  user      User              @relation(fields: [userId], references: [id])
+  proofFile File?             @relation(fields: [proofFileId], references: [id])
+  splits    CommissionSplit[]
+
+  @@index([userId, status])
+  @@map("commission_payouts")
+}
+
+// ---------------------------------------------------------------------
+// ระบบ: ไฟล์ แจ้งเตือน audit เลขรัน
+// ---------------------------------------------------------------------
+
+/// ไฟล์ทุกชนิด (S3 key) ผูกกับ entity แบบ polymorphic
+model File {
+  id           String    @id @default(uuid()) @db.Uuid
+  storageKey   String    @unique @map("storage_key")
+  originalName String    @map("original_name")
+  mimeType     String    @map("mime_type")
+  sizeBytes    Int       @map("size_bytes")
+  entityType   String?   @map("entity_type")
+  entityId     String?   @map("entity_id") @db.Uuid
+  uploadedById String?   @map("uploaded_by_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  archivedAt   DateTime? @map("archived_at") @db.Timestamptz(6)
+
+  assetMedia AssetMedia[]
+  agreements ListingAgreement[]
+  contracts  Contract[]
+  payments   Payment[]
+  expenses   Expense[]
+  payouts    CommissionPayout[]
+
+  @@index([entityType, entityId])
+  @@map("files")
+}
+
+model Notification {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  event     String
+  title     String
+  body      String?
+  link      String?
+  /// สถานะส่งต่อช่องทาง เช่น {"EMAIL":"sent","LINE":"failed"}
+  delivery  Json      @default("{}")
+  /// กันส่งซ้ำ
+  dedupeKey String?   @unique @map("dedupe_key")
+  readAt    DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+/// กฎแจ้งเตือน (design ข้อ 7) — แก้จากหน้า Admin ไม่ต้องแก้โค้ด
+model NotificationRule {
+  id          String                @id @default(uuid()) @db.Uuid
+  /// เช่น lead.created, appointment.reminder, contract.expiring
+  event       String                @unique
+  description String
+  isEnabled   Boolean               @default(true) @map("is_enabled")
+  /// ผู้รับตามบทบาท/ความสัมพันธ์ เช่น ["TEAM_MANAGER","LEAD_OWNER"]
+  recipients  String[]
+  /// เวลาส่งล่วงหน้า (นาที) หรือรายการวัน เช่น {"minutesBefore":[1440,120]}
+  timing      Json                  @default("{}")
+  channels    NotificationChannel[]
+  updatedAt   DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedById String?               @map("updated_by_id") @db.Uuid
+
+  @@map("notification_rules")
+}
+
+/// append-only — trigger ใน 0002 ห้าม UPDATE/DELETE/TRUNCATE
+model AuditLog {
+  id         BigInt      @id @default(autoincrement())
+  actorId    String?     @map("actor_id") @db.Uuid
+  ip         String?
+  userAgent  String?     @map("user_agent")
+  entityType String      @map("entity_type")
+  entityId   String?     @map("entity_id")
+  action     AuditAction
+  before     Json?
+  after      Json?
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("audit_logs")
+}
+
+/// เลขรันสำหรับรหัสอ่านง่าย (OW, PR, LD, AP, BK, LS-2026, SD) — ใช้ nextCode() ใน @rrs/db
+model CodeSequence {
+  key   String @id
+  value Int    @default(0)
+
+  @@map("code_sequences")
+}
+
+// ---------------------------------------------------------------------
+// การยืนยันตัวตน (P03)
+// ---------------------------------------------------------------------
+
+/// refresh token แบบหมุนเวียน — เก็บเฉพาะ hash; ใช้ token ที่ถูกหมุนไปแล้วซ้ำ = ถูกขโมย → เพิกถอนทั้ง family
+model RefreshToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id") @db.Uuid
+  /// SHA-256 ของ token (ตัว token จริงอยู่ใน cookie ของผู้ใช้เท่านั้น)
+  tokenHash    String    @unique @map("token_hash")
+  /// token ทุกตัวที่หมุนต่อกันจากการล็อกอินครั้งเดียวกัน
+  familyId     String    @map("family_id") @db.Uuid
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(6)
+  replacedById String?   @map("replaced_by_id") @db.Uuid
+  ip           String?
+  userAgent    String?   @map("user_agent")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+/// ลิงก์ตั้งรหัสผ่านใหม่ ใช้ครั้งเดียว อายุ 30 นาที
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}

@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "IBM Plex Sans Thai", "Noto Sans Thai", system-ui, sans-serif;
+  --color-ink: #1c2733;
+  --color-ink-muted: #5b6878;
+  --color-paper: #f6f7f9;
+  --color-lagoon: #0f5e5c;
+}
+
+html {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-paper);
+}
+body {
+  line-height: 1.65;
+}
