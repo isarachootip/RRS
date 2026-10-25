@@ -7,7 +7,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { t } from "@/i18n/th";
 import { useAuth } from "@/lib/auth";
 import { ApiStatus } from "./api-status";
-import { NAV, isActive } from "./nav";
+import { NAV, canSeeNavItem, isActive } from "./nav";
 
 const STATUS_DOTS = [
   { key: "status.AVAILABLE", className: "bg-status-available" },
@@ -17,6 +17,8 @@ const STATUS_DOTS = [
 ] as const;
 
 function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  const { user } = useAuth();
+  const visibleNav = NAV.filter((item) => canSeeNavItem(user, item));
   return (
     <div className="flex h-full flex-col bg-lagoon text-white">
       <div className="px-5 pt-6 pb-5">
@@ -25,7 +27,7 @@ function Sidebar({ pathname, onNavigate }: { pathname: string; onNavigate?: () =
       </div>
       <nav aria-label={t("nav.main")} className="flex-1 px-3">
         <ul className="space-y-0.5">
-          {NAV.map((item) => {
+          {visibleNav.map((item) => {
             const active = isActive(pathname, item.href);
             const Icon = item.icon;
             return (

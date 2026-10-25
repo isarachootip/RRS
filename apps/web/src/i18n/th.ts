@@ -62,6 +62,17 @@ export const th = {
   "auth.reset.missing": "ลิงก์ไม่ครบ กรุณาเปิดลิงก์จากอีเมลอีกครั้ง หรือขอลิงก์ใหม่",
   "auth.toLogin": "ไปหน้าเข้าสู่ระบบ",
   "auth.logout": "ออกจากระบบ",
+  "rbac.forbidden.title": "ไม่มีสิทธิ์เข้าถึง",
+  "rbac.forbidden.body": "คุณไม่มีสิทธิ์เข้าถึงข้อมูลหรือหน้านี้ หากคิดว่าผิดพลาดกรุณาติดต่อผู้ดูแลระบบ",
+  "rbac.forbidden.back": "กลับหน้าภาพรวม",
+  "settings.title": "ตั้งค่าระบบและสิทธิ์",
+  "settings.subtitle": "จัดการบัญชีผู้ใช้ ทีม บทบาท และขอบเขตการเข้าถึงข้อมูล",
+  "settings.tab.users": "ผู้ใช้",
+  "settings.tab.teams": "ทีม",
+  "settings.tab.roles": "บทบาทและสิทธิ์",
+  "settings.scope.ALL": "ทั้งหมด (ALL)",
+  "settings.scope.TEAM": "ทีมตัวเอง (TEAM)",
+  "settings.scope.OWN": "ของตัวเอง (OWN)",
 } as const;
 
 export type MessageKey = keyof typeof th;

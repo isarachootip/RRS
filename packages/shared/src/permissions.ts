@@ -59,7 +59,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, Partial<Record<Permissio
     "owner.write": "ALL",
     "owner.contact.view": "ALL",
     "asset.read": "ALL",
-    "asset.write": "ALL",
+    "asset.write": "TEAM",
     "asset.minprice.view": "ALL",
     "listing.write": "ALL",
     "listing.approve": "ALL",

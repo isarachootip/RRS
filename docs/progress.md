@@ -7,7 +7,7 @@
 | P01 | ERD + Prisma schema + seed | เสร็จ 2026-10-19 | – | 34 ตาราง, 2 migration, 29 เทสต์ DB + 17 เทสต์ shared ผ่านบน PostgreSQL 16; ใช้สมมติฐาน D01–D04, D07, D09, D10, D12 |
 | P02 | ตั้ง monorepo, Docker, CI, staging | เสร็จ 2026-10-19 (ยกเว้น deploy staging) | – | Turborepo, API NestJS (/health, Swagger, log, error ภาษาไทย), หลังบ้าน Next.js (เมนู, มือถือ), Portal TH/EN, CI GitHub Actions; 69 เทสต์ + E2E 2 จอ ผ่าน; deploy staging รอเลือก hosting |
 | P03 | Auth: login, JWT, 2FA | เสร็จ 2026-10-19 | – | Argon2id, access JWT 15 นาที + refresh cookie หมุนเวียน (จับ token ถูกขโมย), ล็อก 15 นาทีหลังผิด 5 ครั้ง, 2FA บังคับ Admin/Accounting, ลืมรหัสผ่าน 30 นาที, audit ล็อกอิน; หน้า login/2FA/ลืมรหัส; เทสต์ API 22 + web 10 + E2E 8 |
-| P04 | RBAC + data scope | ยังไม่เริ่ม | | |
+| P04 | RBAC + data scope | เสร็จ 2026-10-26 | `feat/p04-rbac` | PermissionGuard + @Can, DataScopeService (ALL/TEAM/OWN 7 เอนทิตี), ซ่อน minPrice/ข้อมูลติดต่อเจ้าของ + mask เบอร์โทร, หน้าตั้งค่าผู้ใช้/ทีม/บทบาทและสิทธิ์ + รีเซ็ต 2FA; ตัดสินใจ D15–D16; เทสต์รวม 117 + E2E 10 ผ่าน |
 | P05 | Audit Log + ไฟล์ | ยังไม่เริ่ม | | |
 | P06 | เจ้าของทรัพย์ + สินทรัพย์ | ยังไม่เริ่ม | | |
 | P07 | Lead + Lead Ownership | ยังไม่เริ่ม | | |

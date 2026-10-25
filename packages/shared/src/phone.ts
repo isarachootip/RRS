@@ -30,3 +30,14 @@ export function maskPhone(e164: string | null | undefined): string {
   if (e164.startsWith("+66")) return `0${e164.charAt(3)}x-xxx-${last4}`;
   return `${e164.slice(0, 3)}xxxx${last4}`;
 }
+
+/** ย่อชื่อสำหรับแสดงให้ Agent คนอื่นเห็นเพื่อกันสร้างซ้ำ (D16) เช่น "สมชาย ใจดี" → "สมชาย จ." */
+export function abbreviateName(fullName: string | null | undefined): string {
+  if (!fullName) return "";
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length <= 1) return parts[0] ?? "";
+  const first = parts[0]!;
+  const last = parts[parts.length - 1]!;
+  const lastInitial = last.match(/[\u0E01-\u0E2E]/)?.[0] ?? Array.from(last)[0] ?? "";
+  return `${first} ${lastInitial}.`;
+}

@@ -2,6 +2,7 @@ import "reflect-metadata";
 import type { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { resetTestDb } from "@rrs/db/testing";
+import { DEFAULT_ROLE_PERMISSIONS, PERMISSIONS, type RoleCode } from "@rrs/shared";
 import { AppModule } from "../src/app.module";
 import { hashPassword } from "../src/auth/password";
 import { PrismaService } from "../src/prisma/prisma.service";
@@ -22,25 +23,52 @@ export async function createTestApp() {
 
 let roleIds: Record<string, string> | undefined;
 
-export async function createUser(
-  app: INestApplication,
-  opts: { email: string; role?: "ADMIN" | "MANAGER" | "AGENT" | "ACCOUNTING"; isActive?: boolean },
-) {
-  const prisma = app.get(PrismaService);
-  if (!roleIds) {
-    roleIds = {};
-    for (const code of ["ADMIN", "MANAGER", "AGENT", "ACCOUNTING"]) {
-      const r = await prisma.role.upsert({ where: { code }, update: {}, create: { code, name: code, isSystem: true } });
-      roleIds[code] = r.id;
+export async function ensureDefaultRoles(prisma: PrismaService) {
+  if (roleIds) return roleIds;
+  roleIds = {};
+  const permIds: Record<string, string> = {};
+  for (const [code, description] of Object.entries(PERMISSIONS)) {
+    const p = await prisma.permission.upsert({
+      where: { code },
+      update: { description },
+      create: { code, description, module: code.split(".")[0] ?? code },
+    });
+    permIds[code] = p.id;
+  }
+  for (const code of ["ADMIN", "MANAGER", "AGENT", "ACCOUNTING"] as RoleCode[]) {
+    const r = await prisma.role.upsert({ where: { code }, update: {}, create: { code, name: code, isSystem: true } });
+    roleIds[code] = r.id;
+    for (const [perm, scope] of Object.entries(DEFAULT_ROLE_PERMISSIONS[code])) {
+      const permissionId = permIds[perm]!;
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId } },
+        update: { scope },
+        create: { roleId: r.id, permissionId, scope },
+      });
     }
   }
+  return roleIds;
+}
+
+export async function createUser(
+  app: INestApplication,
+  opts: {
+    email: string;
+    role?: "ADMIN" | "MANAGER" | "AGENT" | "ACCOUNTING";
+    isActive?: boolean;
+    teamId?: string | null;
+  },
+) {
+  const prisma = app.get(PrismaService);
+  const roles = await ensureDefaultRoles(prisma);
   return prisma.user.create({
     data: {
       email: opts.email,
       fullName: `ทดสอบ ${opts.email}`,
       passwordHash: await hashPassword(PASSWORD),
       isActive: opts.isActive ?? true,
-      roles: { create: { roleId: roleIds[opts.role ?? "AGENT"]! } },
+      teamId: opts.teamId ?? null,
+      roles: { create: { roleId: roles[opts.role ?? "AGENT"]! } },
     },
   });
 }

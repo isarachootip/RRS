@@ -21,6 +21,6 @@ import { SessionService } from "./session.service";
   ],
   controllers: [AuthController],
   providers: [AuthService, SessionService, { provide: APP_GUARD, useClass: JwtAuthGuard }],
-  exports: [AuthService],
+  exports: [AuthService, SessionService],
 })
 export class AuthModule {}

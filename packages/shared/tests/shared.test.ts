@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { maskPhone, normalizePhone, parseAssetAttributes, toSqWah } from "../src";
+import {
+  abbreviateName,
+  DEFAULT_ROLE_PERMISSIONS,
+  maskPhone,
+  normalizePhone,
+  parseAssetAttributes,
+  toSqWah,
+} from "../src";
 
 describe("normalizePhone", () => {
   it.each([
@@ -21,8 +28,11 @@ describe("normalizePhone", () => {
     expect(normalizePhone(raw)).toBeNull();
   });
 
-  it("maskPhone", () => {
+  it("maskPhone & abbreviateName & D15 manager asset.write scope", () => {
     expect(maskPhone("+66812345678")).toBe("08x-xxx-5678");
+    expect(abbreviateName("สมชาย ใจดี")).toBe("สมชาย จ.");
+    expect(abbreviateName("สมชาย")).toBe("สมชาย");
+    expect(DEFAULT_ROLE_PERMISSIONS.MANAGER["asset.write"]).toBe("TEAM");
   });
 });
 

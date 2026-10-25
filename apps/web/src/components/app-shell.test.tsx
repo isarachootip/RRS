@@ -52,6 +52,22 @@ describe("AppShell", () => {
     }
     expect(within(nav).getByRole("link", { name: "ลูกค้า" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getByRole("link", { name: "ภาพรวม" })).not.toHaveAttribute("aria-current");
+    expect(within(nav).queryByRole("link", { name: "ตั้งค่า" })).not.toBeInTheDocument();
+  });
+
+  it("ซ่อนเมนูที่ผู้ใช้ไม่มีสิทธิ์ตาม permissions จาก /auth/me", () => {
+    const prevUser = auth.user;
+    auth.user = {
+      ...prevUser!,
+      roles: ["ACCOUNTING"],
+      permissions: { "dashboard.read": "ALL", "commissions.read": "ALL" } as Record<string, "ALL" | "TEAM" | "OWN">,
+    };
+    renderShell();
+    const nav = within(screen.getByTestId("sidebar-desktop")).getByRole("navigation", { name: "เมนูหลัก" });
+    expect(within(nav).getByRole("link", { name: "ภาพรวม" })).toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "ลูกค้า" })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole("link", { name: "ตั้งค่า" })).not.toBeInTheDocument();
+    auth.user = prevUser;
   });
 
   it("ปุ่มเมนูบนมือถือเปิด/ปิด drawer และปิดด้วย Escape", async () => {

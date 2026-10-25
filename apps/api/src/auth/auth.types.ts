@@ -5,6 +5,8 @@ export interface AuthUser {
   id: string;
   email: string;
   roles: string[];
+  teamId?: string | null;
+  permissions?: Record<string, Scope>;
 }
 
 export interface MeResponse {

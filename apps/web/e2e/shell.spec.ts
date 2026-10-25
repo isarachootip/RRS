@@ -59,3 +59,13 @@ test("Admin ต้องตั้ง 2FA ตอนล็อกอินครั
   await expect(page.getByRole("heading", { name: "ตั้งค่าการยืนยันสองขั้นตอน" })).toBeVisible();
   await expect(page.getByAltText(/QR code/)).toBeVisible();
 });
+
+test("Agent ไม่เห็นเมนูตั้งค่า และเข้า /settings ตรงจะได้หน้าไม่มีสิทธิ์", async ({ page }) => {
+  await page.goto("/login");
+  await login(page);
+  await expect(page.getByRole("heading", { name: "ภาพรวม" })).toBeVisible();
+  await expect(page.getByTestId("sidebar-desktop").getByRole("link", { name: "ตั้งค่า" })).toHaveCount(0);
+
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "ไม่มีสิทธิ์เข้าถึง" })).toBeVisible();
+});

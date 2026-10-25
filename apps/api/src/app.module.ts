@@ -10,6 +10,7 @@ import { validateEnv } from "./config/env";
 import { HealthController } from "./health/health.controller";
 import { MailModule } from "./mail/mail.module";
 import { PrismaModule } from "./prisma/prisma.module";
+import { RbacModule } from "./rbac/rbac.module";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -39,6 +40,7 @@ const isDev = process.env.NODE_ENV !== "production";
     AuditModule,
     MailModule,
     AuthModule,
+    RbacModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
