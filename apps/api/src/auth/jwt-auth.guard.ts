@@ -2,6 +2,7 @@ import { type CanActivate, type ExecutionContext, Injectable, UnauthorizedExcept
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import type { Request } from "express";
+import { setAuditActor } from "../audit/request-context";
 import { PrismaService } from "../prisma/prisma.service";
 import type { AuthUser } from "./auth.types";
 import { IS_PUBLIC } from "./public.decorator";
@@ -43,6 +44,7 @@ export class JwtAuthGuard implements CanActivate {
     if (!user || !user.isActive || user.archivedAt) throw unauthorized();
 
     req.user = { id: payload.sub, email: payload.email, roles: payload.roles };
+    setAuditActor(payload.sub);
     return true;
   }
 }

@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import { ForbiddenState } from "@/components/forbidden-state";
+import { Timeline } from "@/components/timeline";
 import { ApiError, api } from "@/lib/api";
 
 interface LeadDetail {
@@ -41,10 +42,14 @@ export default function LeadDetailPage() {
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-line bg-surface p-6">
-      <p className="text-xs font-medium text-ink-muted">{data.code}</p>
-      <h1 className="text-xl font-semibold text-ink">{data.fullName}</h1>
-      <p className="text-sm text-ink-muted">เบอร์โทรศัพท์: {data.phone ?? "-"}</p>
+    <div className="space-y-6">
+      <div className="space-y-4 rounded-lg border border-line bg-surface p-6">
+        <p className="text-xs font-medium text-ink-muted">{data.code}</p>
+        <h1 className="text-xl font-semibold text-ink">{data.fullName}</h1>
+        <p className="text-sm text-ink-muted">เบอร์โทรศัพท์: {data.phone ?? "-"}</p>
+      </div>
+
+      <Timeline entityType="lead" entityId={data.id} />
     </div>
   );
 }

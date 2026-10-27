@@ -1,12 +1,9 @@
-import { Body, Controller, ForbiddenException, Get, NotFoundException, Param, Patch, Query, Req } from "@nestjs/common";
+import { Body, Controller, ForbiddenException, Get, NotFoundException, Param, Patch, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Prisma } from "@rrs/db";
-import type { Request } from "express";
 import { z } from "zod";
-import { AuditService } from "../audit/audit.service";
 import type { AuthUser } from "../auth/auth.types";
 import { CurrentUser } from "../auth/public.decorator";
-import { requestMeta } from "../common/request-meta";
 import { ZodPipe } from "../common/zod.pipe";
 import { PrismaService } from "../prisma/prisma.service";
 import { Can } from "./can.decorator";
@@ -45,7 +42,6 @@ export class ScopedEntitiesController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dataScope: DataScopeService,
-    private readonly audit: AuditService,
   ) {}
 
   @Can("lead.read")
@@ -86,19 +82,18 @@ export class ScopedEntitiesController {
 
   @Can("lead.write")
   @Patch("leads/:id")
-  @ApiOperation({ summary: "แก้ไขข้อมูลลูกค้า (ตรวจ data scope ของ lead.write)" })
+  @ApiOperation({ summary: "แก้ไขข้อมูลลูกค้า (ตรวจ data scope ของ lead.write และบันทึก audit อัตโนมัติ)" })
   async updateLead(
     @CurrentUser() user: AuthUser,
     @Param("id") id: string,
     @Body(new ZodPipe(PatchLeadBody)) body: z.infer<typeof PatchLeadBody>,
-    @Req() req: Request,
   ) {
     const scopedWhere = this.dataScope.where(user, "leads", "lead.write") as Prisma.LeadWhereInput;
     const before = await this.prisma.lead.findFirst({ where: { AND: [{ id }, scopedWhere] } });
     if (!before) {
       throw new ForbiddenException({ code: "FORBIDDEN", message: "คุณไม่มีสิทธิ์แก้ไขข้อมูลลูกค้ารายนี้" });
     }
-    const updated = await this.prisma.lead.update({
+    return this.prisma.lead.update({
       where: { id },
       data: {
         ...(body.fullName !== undefined ? { fullName: body.fullName } : {}),
@@ -106,16 +101,6 @@ export class ScopedEntitiesController {
         updatedById: user.id,
       },
     });
-    await this.audit.log({
-      actorId: user.id,
-      action: "UPDATE",
-      entityType: "lead",
-      entityId: id,
-      before: { fullName: before.fullName, specialNote: before.specialNote },
-      after: { fullName: updated.fullName, specialNote: updated.specialNote },
-      meta: requestMeta(req),
-    });
-    return updated;
   }
 
   @Can("asset.read")
@@ -150,12 +135,11 @@ export class ScopedEntitiesController {
 
   @Can("asset.write")
   @Patch("assets/:id")
-  @ApiOperation({ summary: "แก้ไขข้อมูลทรัพย์สิน (ตรวจ data scope ของ asset.write ตาม D15)" })
+  @ApiOperation({ summary: "แก้ไขข้อมูลทรัพย์สิน (ตรวจ data scope ตาม D15 และบันทึก audit อัตโนมัติ)" })
   async updateAsset(
     @CurrentUser() user: AuthUser,
     @Param("id") id: string,
     @Body(new ZodPipe(PatchAssetBody)) body: z.infer<typeof PatchAssetBody>,
-    @Req() req: Request,
   ) {
     const scopedWhere = this.dataScope.where(user, "assets", "asset.write") as Prisma.AssetWhereInput;
     const before = await this.prisma.asset.findFirst({ where: { AND: [{ id }, scopedWhere] } });
@@ -165,22 +149,12 @@ export class ScopedEntitiesController {
         message: "คุณไม่มีสิทธิ์แก้ไขข้อมูลทรัพย์สินรายการนี้",
       });
     }
-    const updated = await this.prisma.asset.update({
+    return this.prisma.asset.update({
       where: { id },
       data: {
         ...(body.internalNote !== undefined ? { internalNote: body.internalNote } : {}),
         updatedById: user.id,
       },
     });
-    await this.audit.log({
-      actorId: user.id,
-      action: "UPDATE",
-      entityType: "asset",
-      entityId: id,
-      before: { internalNote: before.internalNote },
-      after: { internalNote: updated.internalNote },
-      meta: requestMeta(req),
-    });
-    return updated;
   }
 }

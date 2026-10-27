@@ -7,6 +7,7 @@ import { LoggerModule } from "nestjs-pino";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { validateEnv } from "./config/env";
+import { FilesModule } from "./files/files.module";
 import { HealthController } from "./health/health.controller";
 import { MailModule } from "./mail/mail.module";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -41,6 +42,7 @@ const isDev = process.env.NODE_ENV !== "production";
     MailModule,
     AuthModule,
     RbacModule,
+    FilesModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

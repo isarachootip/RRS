@@ -73,6 +73,20 @@ export const th = {
   "settings.scope.ALL": "ทั้งหมด (ALL)",
   "settings.scope.TEAM": "ทีมตัวเอง (TEAM)",
   "settings.scope.OWN": "ของตัวเอง (OWN)",
+  "timeline.title": "ประวัติการแก้ไข (Audit Log)",
+  "timeline.empty": "ยังไม่มีประวัติการแก้ไขสำหรับรายการนี้",
+  "timeline.loading": "กำลังโหลดประวัติการแก้ไข...",
+  "timeline.actor.system": "ระบบอัตโนมัติ",
+  "timeline.before": "ค่าเดิม",
+  "timeline.after": "ค่าใหม่",
+  "archive.button": "เก็บเข้ากรุ (Archive)",
+  "archive.step1.title": "ยืนยันการเก็บข้อมูลเข้ากรุ (ขั้นที่ 1/2)",
+  "archive.step1.body": "ข้อมูลที่เก็บเข้ากรุจะถูกซ่อนจากรายการปกติ แต่ยังคงอยู่ในระบบเพื่อการตรวจสอบ",
+  "archive.step1.next": "ดำเนินการต่อ",
+  "archive.step2.title": "ยืนยันขั้นสุดท้าย (ขั้นที่ 2/2)",
+  "archive.step2.body": "กรุณาพิมพ์คำว่า ARCHIVE เพื่อยืนยันการเก็บเข้ากรุ",
+  "archive.step2.confirm": "ยืนยันเก็บเข้ากรุ",
+  "archive.cancel": "ยกเลิก",
 } as const;
 
 export type MessageKey = keyof typeof th;

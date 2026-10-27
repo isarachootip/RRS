@@ -35,6 +35,12 @@ export const envSchema = z.object({
   MAIL_TRANSPORT: z.enum(["log", "smtp"]).default("log"),
   SMTP_URL: z.string().optional(),
   MAIL_FROM: z.string().default("RRS <no-reply@rrs.local>"),
+
+  // พื้นที่เก็บไฟล์ S3 / MinIO (P05)
+  S3_ENDPOINT: z.string().url().default("http://localhost:9000"),
+  S3_ACCESS_KEY: z.string().min(1).default("minioadmin"),
+  S3_SECRET_KEY: z.string().min(1).default("minioadmin"),
+  S3_BUCKET: z.string().min(1).default("rrs-files"),
 });
 
 export type Env = z.infer<typeof envSchema>;
