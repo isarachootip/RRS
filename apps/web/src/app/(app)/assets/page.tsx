@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { AssetsView } from "@/components/assets/assets-view";
 
-export default function Page() {
-  return <ComingSoon href="/assets" />;
+export default function AssetsPage() {
+  return <AssetsView />;
 }

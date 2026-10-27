@@ -8,31 +8,16 @@ import { ZodPipe } from "../common/zod.pipe";
 import { PrismaService } from "../prisma/prisma.service";
 import { Can } from "./can.decorator";
 import { DataScopeService } from "./data-scope.service";
-import {
-  type AssetWithRelations,
-  type LeadWithRelations,
-  redactAssetForUser,
-  redactLeadInList,
-} from "./field-redaction";
+import { type LeadWithRelations, redactLeadInList } from "./field-redaction";
 
 const PatchLeadBody = z.object({
   fullName: z.string().trim().min(1).max(120).optional(),
   specialNote: z.string().max(1000).nullish(),
 });
 
-const PatchAssetBody = z.object({
-  internalNote: z.string().max(1000).nullish(),
-});
-
 const leadInclude = {
   ownerAgent: { select: { id: true, fullName: true, teamId: true } },
   collaborators: { include: { user: { select: { teamId: true } } } },
-} as const;
-
-const assetInclude = {
-  owner: { include: { agent: { select: { teamId: true } } } },
-  primaryAgent: { select: { id: true, fullName: true, teamId: true } },
-  agents: { include: { user: { select: { teamId: true } } } },
 } as const;
 
 @ApiTags("rbac-scoped")
@@ -43,6 +28,17 @@ export class ScopedEntitiesController {
     private readonly prisma: PrismaService,
     private readonly dataScope: DataScopeService,
   ) {}
+
+  @Get("agents")
+  @ApiOperation({ summary: "รายชื่อผู้ใช้งานที่เปิดใช้งานอยู่สำหรับเลือกผู้รับผิดชอบ" })
+  async listAgents() {
+    const items = await this.prisma.user.findMany({
+      where: { isActive: true, archivedAt: null },
+      orderBy: { fullName: "asc" },
+      select: { id: true, fullName: true, nickname: true, teamId: true },
+    });
+    return { items };
+  }
 
   @Can("lead.read")
   @Get("leads")
@@ -98,61 +94,6 @@ export class ScopedEntitiesController {
       data: {
         ...(body.fullName !== undefined ? { fullName: body.fullName } : {}),
         ...(body.specialNote !== undefined ? { specialNote: body.specialNote } : {}),
-        updatedById: user.id,
-      },
-    });
-  }
-
-  @Can("asset.read")
-  @Get("assets")
-  @ApiOperation({ summary: "รายการทรัพย์สินพร้อมซ่อน minPrice และข้อมูลติดต่อเจ้าของตามสิทธิ์" })
-  async listAssets(@CurrentUser() user: AuthUser) {
-    const scopedWhere = this.dataScope.where(user, "assets", "asset.read") as Prisma.AssetWhereInput;
-    const assets = await this.prisma.asset.findMany({
-      where: scopedWhere,
-      orderBy: { createdAt: "desc" },
-      include: assetInclude,
-    });
-    return {
-      items: assets.map((a) => redactAssetForUser(user, a as unknown as AssetWithRelations, { isList: true })),
-    };
-  }
-
-  @Can("asset.read")
-  @Get("assets/:id")
-  @ApiOperation({ summary: "ดูรายละเอียดทรัพย์สินพร้อมซ่อน minPrice และข้อมูลติดต่อเจ้าของตามสิทธิ์" })
-  async getAsset(@CurrentUser() user: AuthUser, @Param("id") id: string) {
-    const scopedWhere = this.dataScope.where(user, "assets", "asset.read") as Prisma.AssetWhereInput;
-    const asset = await this.prisma.asset.findFirst({
-      where: { AND: [{ id }, scopedWhere] },
-      include: assetInclude,
-    });
-    if (!asset) {
-      throw new NotFoundException({ code: "ASSET_NOT_FOUND", message: "ไม่พบข้อมูลทรัพย์สินนี้" });
-    }
-    return redactAssetForUser(user, asset as unknown as AssetWithRelations);
-  }
-
-  @Can("asset.write")
-  @Patch("assets/:id")
-  @ApiOperation({ summary: "แก้ไขข้อมูลทรัพย์สิน (ตรวจ data scope ตาม D15 และบันทึก audit อัตโนมัติ)" })
-  async updateAsset(
-    @CurrentUser() user: AuthUser,
-    @Param("id") id: string,
-    @Body(new ZodPipe(PatchAssetBody)) body: z.infer<typeof PatchAssetBody>,
-  ) {
-    const scopedWhere = this.dataScope.where(user, "assets", "asset.write") as Prisma.AssetWhereInput;
-    const before = await this.prisma.asset.findFirst({ where: { AND: [{ id }, scopedWhere] } });
-    if (!before) {
-      throw new ForbiddenException({
-        code: "FORBIDDEN",
-        message: "คุณไม่มีสิทธิ์แก้ไขข้อมูลทรัพย์สินรายการนี้",
-      });
-    }
-    return this.prisma.asset.update({
-      where: { id },
-      data: {
-        ...(body.internalNote !== undefined ? { internalNote: body.internalNote } : {}),
         updatedById: user.id,
       },
     });

@@ -24,6 +24,7 @@ const AUDITED_MODELS = new Set([
 ]);
 
 const REDACTED_KEYS = new Set(["passwordHash", "totpSecret", "tokenHash"]);
+const JSON_COLUMNS = new Set(["attributes", "commissionParams", "notificationPrefs", "timing"]);
 
 function toEntityType(model: string): string {
   return model.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
@@ -42,7 +43,7 @@ function sanitizeSnapshot(row: unknown): Record<string, unknown> | null {
     else if (typeof v === "bigint") out[k] = v.toString();
     else if (v !== null && typeof v === "object" && "toFixed" in v && typeof v.toFixed === "function") {
       out[k] = (v as { toFixed: (d: number) => string }).toFixed(2);
-    } else if (v === undefined || typeof v !== "object" || Array.isArray(v) || v === null) {
+    } else if (JSON_COLUMNS.has(k) || v === undefined || typeof v !== "object" || Array.isArray(v) || v === null) {
       out[k] = v;
     }
   }

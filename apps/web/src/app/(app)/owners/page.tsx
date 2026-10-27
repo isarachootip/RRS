@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { OwnersView } from "@/components/owners/owners-view";
 
-export default function Page() {
-  return <ComingSoon href="/owners" />;
+export default function OwnersPage() {
+  return <OwnersView />;
 }
