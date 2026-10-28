@@ -58,6 +58,7 @@ function detectUpdateAction(
   if (!before.archivedAt && after.archivedAt) return "ARCHIVE";
   if (before.archivedAt && !after.archivedAt) return "RESTORE";
   if (!before.approvedAt && after.approvedAt) return "APPROVE";
+  if (before.ownerAgentId && after.ownerAgentId && before.ownerAgentId !== after.ownerAgentId) return "TRANSFER";
   if (before.status !== undefined && after.status !== undefined && before.status !== after.status) {
     return "UPDATE";
   }

@@ -10,6 +10,7 @@ import { AuthModule } from "./auth/auth.module";
 import { validateEnv } from "./config/env";
 import { FilesModule } from "./files/files.module";
 import { HealthController } from "./health/health.controller";
+import { LeadsModule } from "./leads/leads.module";
 import { MailModule } from "./mail/mail.module";
 import { OwnersModule } from "./owners/owners.module";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -47,6 +48,7 @@ const isDev = process.env.NODE_ENV !== "production";
     FilesModule,
     OwnersModule,
     AssetsModule,
+    LeadsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

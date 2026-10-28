@@ -10,7 +10,7 @@
 | P04 | RBAC + data scope | เสร็จ 2026-10-26 | `feat/p04-rbac` | PermissionGuard + @Can, DataScopeService (ALL/TEAM/OWN 7 เอนทิตี), ซ่อน minPrice/ข้อมูลติดต่อเจ้าของ + mask เบอร์โทร, หน้าตั้งค่าผู้ใช้/ทีม/บทบาทและสิทธิ์ + รีเซ็ต 2FA; ตัดสินใจ D15–D16; เทสต์รวม 117 + E2E 10 ผ่าน |
 | P05 | Audit Log + ไฟล์ | เสร็จ 2026-10-27 | `feat/p05-audit-files` | Prisma Client Extension บันทึก audit_logs อัตโนมัติพร้อม AsyncLocalStorage (actor, IP, UA, before/after), FileService (S3/MinIO, sharp ย่อ 3 ขนาด WebP, signed URL 5 นาที), คอมโพเนนต์ `<Timeline />` และ `<ConfirmArchiveDialog />` (ยืนยัน 2 ขั้นตอน) |
 | P06 | เจ้าของทรัพย์ + สินทรัพย์ | เสร็จ 2026-10-27 | `feat/p06-owners-assets` | Owners CRUD + เตือนเบอร์/LINE/อีเมลซ้ำ, Assets 9 ประเภท (validate ด้วย assetAttributesSchemas), อพาร์ตเมนต์ Bulk Units, ผู้ดูแลหลายบทบาท, แกลเลอรีรูปเรียงลำดับ, ประวัติสัญญาฝากเช่า/ขาย, TanStack Table + มือถือ |
-| P07 | Lead + Lead Ownership | ยังไม่เริ่ม | | |
+| P07 | Lead + Lead Ownership | เสร็จ 2026-10-28 | `feat/p07-leads` | Lead เช่า/ซื้อ, ตรวจเบอร์ซ้ำด้วย normalizePhone ไม่รั่วไหลข้อมูลติดต่อ + ปุ่มขอร่วมงาน, โอนผู้ดูแลเฉพาะ Manager พร้อมบันทึก lead_assignments + audit TRANSFER, Kanban + Table บังคับใส่เหตุผลเมื่อย้อนสถานะ/LOST, บันทึก activities และแจ้งเตือนค้างเกิน 30 วัน |
 | P08 | ค้นหา + นำเข้าข้อมูลเดิม | ยังไม่เริ่ม | | |
 | P09 | จับคู่ห้อง | ยังไม่เริ่ม | | |
 | P10 | นัดดูห้อง | ยังไม่เริ่ม | | |

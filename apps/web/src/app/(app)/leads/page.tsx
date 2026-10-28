@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { LeadsView } from "@/components/leads/leads-view";
 
-export default function Page() {
-  return <ComingSoon href="/leads" />;
+export default function LeadsPage() {
+  return <LeadsView />;
 }
