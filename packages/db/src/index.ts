@@ -35,3 +35,6 @@ export function isContractLockedError(e: unknown): boolean {
   const msg = e instanceof Error ? e.message : String(e);
   return msg.includes("contract_locked");
 }
+
+export * from "./importer/importer.types";
+export * from "./importer/legacy-importer";

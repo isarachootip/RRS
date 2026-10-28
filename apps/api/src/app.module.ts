@@ -15,6 +15,7 @@ import { MailModule } from "./mail/mail.module";
 import { OwnersModule } from "./owners/owners.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RbacModule } from "./rbac/rbac.module";
+import { SearchModule } from "./search/search.module";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -49,6 +50,7 @@ const isDev = process.env.NODE_ENV !== "production";
     OwnersModule,
     AssetsModule,
     LeadsModule,
+    SearchModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

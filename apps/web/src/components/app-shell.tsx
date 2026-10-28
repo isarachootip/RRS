@@ -1,12 +1,13 @@
 "use client";
 
-import { LogOut, Menu, Search, UserCircle2, X } from "lucide-react";
+import { LogOut, Menu, UserCircle2, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 import { t } from "@/i18n/th";
 import { useAuth } from "@/lib/auth";
 import { ApiStatus } from "./api-status";
+import { GlobalSearchBar } from "./global-search-bar";
 import { NAV, canSeeNavItem, isActive } from "./nav";
 
 const STATUS_DOTS = [
@@ -149,18 +150,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           >
             <Menu className="size-5" />
           </button>
-          <label className="relative min-w-0 flex-1 lg:max-w-xl">
-            <span className="sr-only">{t("topbar.search")}</span>
-            <Search
-              aria-hidden
-              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted"
-            />
-            <input
-              type="search"
-              placeholder={t("topbar.search")}
-              className="h-9 w-full rounded-md border border-line bg-paper pr-3 pl-9 text-sm placeholder:text-ink-muted focus:border-lagoon focus:bg-surface focus:outline-none"
-            />
-          </label>
+          <GlobalSearchBar />
           <div className="ml-auto flex items-center gap-3">
             <ApiStatus />
             <UserMenu />

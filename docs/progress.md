@@ -11,7 +11,7 @@
 | P05 | Audit Log + ไฟล์ | เสร็จ 2026-10-27 | `feat/p05-audit-files` | Prisma Client Extension บันทึก audit_logs อัตโนมัติพร้อม AsyncLocalStorage (actor, IP, UA, before/after), FileService (S3/MinIO, sharp ย่อ 3 ขนาด WebP, signed URL 5 นาที), คอมโพเนนต์ `<Timeline />` และ `<ConfirmArchiveDialog />` (ยืนยัน 2 ขั้นตอน) |
 | P06 | เจ้าของทรัพย์ + สินทรัพย์ | เสร็จ 2026-10-27 | `feat/p06-owners-assets` | Owners CRUD + เตือนเบอร์/LINE/อีเมลซ้ำ, Assets 9 ประเภท (validate ด้วย assetAttributesSchemas), อพาร์ตเมนต์ Bulk Units, ผู้ดูแลหลายบทบาท, แกลเลอรีรูปเรียงลำดับ, ประวัติสัญญาฝากเช่า/ขาย, TanStack Table + มือถือ |
 | P07 | Lead + Lead Ownership | เสร็จ 2026-10-28 | `feat/p07-leads` | Lead เช่า/ซื้อ, ตรวจเบอร์ซ้ำด้วย normalizePhone ไม่รั่วไหลข้อมูลติดต่อ + ปุ่มขอร่วมงาน, โอนผู้ดูแลเฉพาะ Manager พร้อมบันทึก lead_assignments + audit TRANSFER, Kanban + Table บังคับใส่เหตุผลเมื่อย้อนสถานะ/LOST, บันทึก activities และแจ้งเตือนค้างเกิน 30 วัน |
-| P08 | ค้นหา + นำเข้าข้อมูลเดิม | ยังไม่เริ่ม | | |
+| P08 | ค้นหา + นำเข้าข้อมูลเดิม | เสร็จ 2026-10-28 | `feat/p08-search-import` | Global search ข้าม owners/assets/leads ด้วย pg_trgm เคารพ data scope ภายใน 300ms, คอมโพเนนต์ `<GlobalSearchBar />` บน topbar, สคริปต์ import CSV (`pnpm import:owners\|assets\|leads`) รองรับ map คอลัมน์, normalizePhone, ผูกโครงการแบบ fuzzy, `--dry-run` ออกรายงาน CSV, และ idempotent |
 | P09 | จับคู่ห้อง | ยังไม่เริ่ม | | |
 | P10 | นัดดูห้อง | ยังไม่เริ่ม | | |
 | P11 | ผลติดตาม + จอง | ยังไม่เริ่ม | | |

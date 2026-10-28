@@ -1,0 +1,28 @@
+{
+  "owners": {
+    "fullName": "ชื่อ-นามสกุล",
+    "phone": "เบอร์โทร",
+    "lineId": "LINE ID",
+    "email": "อีเมล",
+    "agentEmail": "ผู้ดูแล"
+  },
+  "assets": {
+    "category": "ประเภท",
+    "ownershipType": "กรรมสิทธิ์",
+    "ownerPhone": "เบอร์เจ้าของ",
+    "projectName": "โครงการ",
+    "unitNo": "เลขห้อง",
+    "rentPrice": "ราคาเช่า",
+    "salePrice": "ราคาขาย",
+    "agentEmail": "ผู้ดูแล"
+  },
+  "leads": {
+    "intent": "ความต้องการ",
+    "fullName": "ชื่อ-นามสกุล",
+    "phone": "เบอร์โทร",
+    "lineId": "LINE ID",
+    "email": "อีเมล",
+    "source": "ช่องทาง",
+    "agentEmail": "ผู้ดูแล"
+  }
+}
