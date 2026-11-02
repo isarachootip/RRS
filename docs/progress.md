@@ -15,7 +15,7 @@
 | P09 | จับคู่ห้อง | เสร็จ 2026-11-02 | `feat/p09-matching` | MatchingService ดึงเงื่อนไขจาก Lead อัตโนมัติ คัดเฉพาะห้องว่างเรียงตาม matchScore, บันทึก lead_offers หลายห้องพร้อมสร้างลิงก์แชร์อายุ 7 วัน, หน้า `/share/[token]` สำหรับลูกค้าโดยไม่มี minPrice/เลขห้อง/ข้อมูลเจ้าของ |
 | P10 | นัดดูห้อง | เสร็จ 2026-11-02 | `feat/p10-appointments` | AssetStatusService.recompute(assetId), สร้างนัดหลายห้อง (appointment_items), ตรวจนัดซ้อนด้วย tstzrange overlap พร้อมเตือนให้ยืนยันก่อนบันทึก, เลื่อนนัดผูก rescheduledFromId, เปลี่ยนสถานะห้อง/Lead อัตโนมัติ, ปฏิทินทีม วัน/สัปดาห์/เดือน ที่ Agent เห็นนัดคนอื่นเป็น "ไม่ว่าง" |
 | P11 | ผลติดตาม + จอง | เสร็จ 2026-11-02 | `feat/p11-followup-booking` | บังคับบันทึกผลต่อห้อง + วันติดตามถัดไปเมื่อนัดเป็น COMPLETED, สร้าง/รับชำระ/ยกเลิก Booking (ยึดหรือคืนเงินจอง), ล็อกช่วงวันที่ด้วย PostgreSQL EXCLUDE constraint พร้อมแปลง error เป็นข้อความไทยระบุรหัสที่ชนกัน, เทสต์ concurrency 10 requests ผ่าน |
-| P12 | สัญญา + pipeline ขาย | ยังไม่เริ่ม | | |
+| P12 | สัญญา + pipeline ขาย | เสร็จ 2026-11-02 | `feat/p12-contracts-sales` | แปลง Booking เป็นสัญญาเช่า (LS-YYYY-NNNN), ลงนามเปลี่ยนห้องเป็น CONTRACTED + สร้าง Commission รอคำนวณ, แก้สัญญา ACTIVE ได้แถวใหม่ Revision+1 (-R2) เดิมเป็น SUPERSEDED, ต่อสัญญาผูก previousContractId, Job รายวันคืนห้องว่างหลังวันสิ้นสุด, Pipeline งานขาย 7 สถานะเปลี่ยนห้องเป็น SOLD |
 | P13 | รับเงินและรายได้ห้อง Owner | ยังไม่เริ่ม | | |
 | P14 | Commission engine | ยังไม่เริ่ม | | |
 | P15 | อนุมัติและจ่ายค่านายหน้า | ยังไม่เริ่ม | | |

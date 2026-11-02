@@ -10,6 +10,7 @@ import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { BookingsModule } from "./bookings/bookings.module";
 import { validateEnv } from "./config/env";
+import { ContractsModule } from "./contracts/contracts.module";
 import { FilesModule } from "./files/files.module";
 import { HealthController } from "./health/health.controller";
 import { LeadsModule } from "./leads/leads.module";
@@ -18,6 +19,7 @@ import { MatchingModule } from "./matching/matching.module";
 import { OwnersModule } from "./owners/owners.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RbacModule } from "./rbac/rbac.module";
+import { SaleDealsModule } from "./sale-deals/sale-deals.module";
 import { SearchModule } from "./search/search.module";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -57,6 +59,8 @@ const isDev = process.env.NODE_ENV !== "production";
     MatchingModule,
     AppointmentsModule,
     BookingsModule,
+    ContractsModule,
+    SaleDealsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

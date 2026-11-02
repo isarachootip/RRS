@@ -97,7 +97,10 @@ export class AssetStatusService {
         where: {
           assetId,
           outcome: { in: ["NEGOTIATING_PRICE", "AGREED"] },
-          appointment: { status: "COMPLETED" },
+          appointment: {
+            status: "COMPLETED",
+            lead: { status: { in: ["VIEWING", "NEGOTIATING", "BOOKED"] } },
+          },
         },
         select: { appointmentId: true },
       }),

@@ -1,5 +1,5 @@
-import { BookingsView } from "@/components/bookings/bookings-view";
+import { DealsWorkspace } from "@/components/deals/deals-workspace";
 
 export default function DealsPage() {
-  return <BookingsView />;
+  return <DealsWorkspace />;
 }
