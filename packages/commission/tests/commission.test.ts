@@ -131,29 +131,23 @@ describe("P14 · การแบ่งค่านายหน้าตามบ
     expect(overAmt.errors[0]?.code).toBe("AMOUNT_EXCEEDS_TOTAL");
     expect(overAmt.errors[0]?.diff).toBe("+1000.00");
 
-    const underPct = validateSplits("30000.00", [
-      { role: "FINDER", userId: "a", shareType: "PERCENT", sharePercent: "50" },
-      { role: "COMPANY", userId: null, shareType: "PERCENT", sharePercent: "40" },
-    ]);
-    expect(underPct.valid).toBe(false);
-    expect(underPct.errors[0]?.diff).toBe("-10.00");
-
-    const empty = validateSplits("30000.00", []);
-    expect(empty.valid).toBe(false);
-
-    const mixed = validateSplits("30000.00", [
-      { role: "FINDER", userId: "a", shareType: "PERCENT", sharePercent: "50" },
-      { role: "COMPANY", userId: null, shareType: "AMOUNT", amount: "15000" },
-    ]);
-    expect(mixed.valid).toBe(false);
-    expect(mixed.errors[0]?.code).toBe("MIXED_SHARE_TYPES");
-
-    const missingCompany = validateSplits("30000.00", [
-      { role: "FINDER", userId: "a", shareType: "PERCENT", sharePercent: "100" },
-    ]);
-    expect(missingCompany.valid).toBe(false);
-    expect(missingCompany.errors[0]?.code).toBe("MISSING_COMPANY_ROW");
-
+    expect(validateSplits("30000.00", []).valid).toBe(false);
+    expect(
+      validateSplits("30000.00", [
+        { role: "FINDER", userId: "a", shareType: "PERCENT", sharePercent: "50" },
+        { role: "COMPANY", userId: null, shareType: "PERCENT", sharePercent: "40" },
+      ]).errors[0]?.diff,
+    ).toBe("-10.00");
+    expect(
+      validateSplits("30000.00", [
+        { role: "FINDER", userId: "a", shareType: "PERCENT", sharePercent: "50" },
+        { role: "COMPANY", userId: null, shareType: "AMOUNT", amount: "15000" },
+      ]).errors[0]?.code,
+    ).toBe("MIXED_SHARE_TYPES");
+    expect(
+      validateSplits("30000.00", [{ role: "FINDER", userId: "a", shareType: "PERCENT", sharePercent: "100" }]).errors[0]
+        ?.code,
+    ).toBe("MISSING_COMPANY_ROW");
     expect(() =>
       calculateCommissionSplits("30000.00", [
         { role: "FINDER", userId: "a", shareType: "PERCENT", sharePercent: "100" },
