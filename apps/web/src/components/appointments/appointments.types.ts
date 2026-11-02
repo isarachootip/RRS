@@ -1,5 +1,22 @@
 export type AppointmentStatusCode = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW" | "RESCHEDULED";
 
+export type FollowUpOutcomeCode =
+  | "LIKED"
+  | "NEGOTIATING_PRICE"
+  | "WANTS_OTHER_UNITS"
+  | "CONSIDERING"
+  | "NOT_INTERESTED"
+  | "AGREED";
+
+export const FOLLOW_UP_OUTCOME_LABELS: Record<FollowUpOutcomeCode, string> = {
+  LIKED: "ชอบ",
+  NEGOTIATING_PRICE: "ต่อรองราคา",
+  WANTS_OTHER_UNITS: "ขอดูห้องอื่น",
+  CONSIDERING: "รอพิจารณา",
+  NOT_INTERESTED: "ไม่สนใจ",
+  AGREED: "ตกลงจอง/เช่า",
+};
+
 export type CalendarViewMode = "day" | "week" | "month";
 
 export interface CalendarAppointmentItem {
@@ -123,3 +140,16 @@ export function formatTimeShort(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
 }
+
+export const APPOINTMENT_TEXT_FIELDS: Array<{
+  key: "startsAt" | "endsAt" | "location" | "coordinatorName" | "coordinatorPhone";
+  label: string;
+  aria?: string;
+  type?: string;
+}> = [
+  { key: "startsAt", label: "วันและเวลาเริ่ม *", aria: "วันและเวลาเริ่ม", type: "datetime-local" },
+  { key: "endsAt", label: "วันและเวลาสิ้นสุด *", aria: "วันและเวลาสิ้นสุด", type: "datetime-local" },
+  { key: "location", label: "สถานที่นัดพบ", aria: "สถานที่นัดพบ" },
+  { key: "coordinatorName", label: "ผู้ประสานงาน / เจ้าของห้อง" },
+  { key: "coordinatorPhone", label: "เบอร์โทรผู้ประสานงาน" },
+];

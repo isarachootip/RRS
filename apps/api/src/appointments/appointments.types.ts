@@ -44,9 +44,26 @@ export const rescheduleAppointmentSchema = z.object({
 
 export type RescheduleAppointmentInput = z.infer<typeof rescheduleAppointmentSchema>;
 
+export const followUpOutcomeEnum = z.enum([
+  "LIKED",
+  "NEGOTIATING_PRICE",
+  "WANTS_OTHER_UNITS",
+  "CONSIDERING",
+  "NOT_INTERESTED",
+  "AGREED",
+]);
+
+export const appointmentItemOutcomeSchema = z.object({
+  assetId: z.string().uuid(),
+  outcome: followUpOutcomeEnum,
+  outcomeNote: z.string().max(1000).nullable().optional(),
+});
+
 export const updateAppointmentStatusSchema = z.object({
   status: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"]),
   note: z.string().max(1000).nullable().optional(),
+  outcomes: z.array(appointmentItemOutcomeSchema).optional(),
+  nextFollowUpAt: z.string().nullable().optional(),
 });
 
 export type UpdateAppointmentStatusInput = z.infer<typeof updateAppointmentStatusSchema>;

@@ -1,14 +1,48 @@
 "use client";
 
-import { Building2, Clock, Lock, MapPin, User } from "lucide-react";
+import { AlertTriangle, Building2, Clock, Lock, MapPin, User } from "lucide-react";
 import {
   APPOINTMENT_STATUS_COLORS,
   APPOINTMENT_STATUS_LABELS,
   type CalendarAppointmentItem,
   type CalendarViewMode,
+  type OverlapItem,
   formatTimeShort,
   isSameLocalDate,
 } from "./appointments.types";
+
+export function OverlapWarningBanner({
+  overlaps,
+  submitting,
+  onConfirm,
+}: {
+  overlaps: OverlapItem[];
+  submitting: boolean;
+  onConfirm: () => void;
+}) {
+  if (overlaps.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
+      <div className="flex items-center gap-2 font-semibold">
+        <AlertTriangle className="h-4 w-4 text-amber-600" />
+        <span>พบการนัดหมายซ้อนของ Agent คนเดียวกัน ({overlaps.length} รายการ)</span>
+      </div>
+      <ul className="mt-1 list-inside list-disc text-xs">
+        {overlaps.map((ov) => (
+          <li key={ov.id}>{`${ov.code} (${formatTimeShort(ov.startsAt)}–${formatTimeShort(ov.endsAt)})`}</li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={onConfirm}
+        disabled={submitting}
+        className="mt-2 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white"
+      >
+        ยืนยันบันทึกนัดซ้อน
+      </button>
+    </div>
+  );
+}
 
 interface TeamCalendarGridProps {
   days: Date[];

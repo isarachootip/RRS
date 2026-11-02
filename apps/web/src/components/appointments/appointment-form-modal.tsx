@@ -2,9 +2,10 @@
 
 import { ApiError, api } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useState } from "react";
-import { type CalendarAppointmentItem, type OverlapItem, formatTimeShort } from "./appointments.types";
+import { APPOINTMENT_TEXT_FIELDS, type CalendarAppointmentItem, type OverlapItem } from "./appointments.types";
+import { OverlapWarningBanner } from "./team-calendar-grid";
 
 interface AppointmentFormModalProps {
   rescheduleTarget?: CalendarAppointmentItem | null;
@@ -91,13 +92,6 @@ export function AppointmentFormModal({ rescheduleTarget, defaultLeadId, onClose 
 
   const inpCls = "w-full rounded-lg border border-slate-300 px-3 py-2";
   const lblCls = "mb-1 block font-medium text-slate-700";
-  const textFields: Array<{ key: keyof typeof form; label: string; aria?: string; type?: string }> = [
-    { key: "startsAt", label: "วันและเวลาเริ่ม *", aria: "วันและเวลาเริ่ม", type: "datetime-local" },
-    { key: "endsAt", label: "วันและเวลาสิ้นสุด *", aria: "วันและเวลาสิ้นสุด", type: "datetime-local" },
-    { key: "location", label: "สถานที่นัดพบ", aria: "สถานที่นัดพบ" },
-    { key: "coordinatorName", label: "ผู้ประสานงาน / เจ้าของห้อง" },
-    { key: "coordinatorPhone", label: "เบอร์โทรผู้ประสานงาน" },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
@@ -130,7 +124,7 @@ export function AppointmentFormModal({ rescheduleTarget, defaultLeadId, onClose 
           )}
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {textFields.map((f) => (
+            {APPOINTMENT_TEXT_FIELDS.map((f) => (
               <div key={f.key}>
                 <label className={lblCls}>{f.label}</label>
                 <input
@@ -181,37 +175,15 @@ export function AppointmentFormModal({ rescheduleTarget, defaultLeadId, onClose 
             </div>
           </div>
 
-          <div>
-            <label className={lblCls}>หมายเหตุ</label>
-            <textarea
-              rows={2}
-              value={form.note}
-              onChange={(e) => setField("note", e.target.value)}
-              className={inpCls}
-            />
-          </div>
+          <textarea
+            rows={2}
+            placeholder="หมายเหตุ..."
+            value={form.note}
+            onChange={(e) => setField("note", e.target.value)}
+            className={inpCls}
+          />
 
-          {overlaps.length > 0 && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-900">
-              <div className="flex items-center gap-2 font-semibold">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <span>พบการนัดหมายซ้อนของ Agent คนเดียวกัน ({overlaps.length} รายการ)</span>
-              </div>
-              <ul className="mt-1 list-inside list-disc text-xs">
-                {overlaps.map((ov) => (
-                  <li key={ov.id}>{`${ov.code} (${formatTimeShort(ov.startsAt)}–${formatTimeShort(ov.endsAt)})`}</li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={() => void submitForm(true)}
-                disabled={submitting}
-                className="mt-2 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white"
-              >
-                ยืนยันบันทึกนัดซ้อน
-              </button>
-            </div>
-          )}
+          <OverlapWarningBanner overlaps={overlaps} submitting={submitting} onConfirm={() => void submitForm(true)} />
 
           {errorMsg && overlaps.length === 0 && (
             <div className="rounded-lg bg-rose-50 p-3 text-xs text-rose-700">{errorMsg}</div>

@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Calendar, Plus } from "lucide-react";
 import { useState } from "react";
 import { AppointmentsFilterBar, SelectedAppointmentDetailCard } from "./appointment-detail-card";
+import { AppointmentCompleteModal } from "./appointment-complete-modal";
 import { AppointmentFormModal } from "./appointment-form-modal";
 import {
   type AppointmentStatusCode,
@@ -24,6 +25,7 @@ export function AppointmentsView() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [rescheduleTarget, setRescheduleTarget] = useState<CalendarAppointmentItem | null>(null);
+  const [completeTarget, setCompleteTarget] = useState<CalendarAppointmentItem | null>(null);
 
   const { from, to, days } = getViewDateRange(anchorDate, viewMode);
   const params = new URLSearchParams({
@@ -115,10 +117,18 @@ export function AppointmentsView() {
       {selectedAppt && (
         <SelectedAppointmentDetailCard
           appt={selectedAppt}
-          onChangeStatus={(status) => statusMut.mutate({ id: selectedAppt.id, status })}
+          onChangeStatus={(status) => {
+            if (status === "COMPLETED") {
+              setCompleteTarget(selectedAppt);
+            } else {
+              statusMut.mutate({ id: selectedAppt.id, status });
+            }
+          }}
           onReschedule={() => setRescheduleTarget(selectedAppt)}
         />
       )}
+
+      {completeTarget && <AppointmentCompleteModal appt={completeTarget} onClose={() => setCompleteTarget(null)} />}
 
       {(showCreateModal || rescheduleTarget) && (
         <AppointmentFormModal

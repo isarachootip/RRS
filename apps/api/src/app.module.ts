@@ -8,6 +8,7 @@ import { AppointmentsModule } from "./appointments/appointments.module";
 import { AssetsModule } from "./assets/assets.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
+import { BookingsModule } from "./bookings/bookings.module";
 import { validateEnv } from "./config/env";
 import { FilesModule } from "./files/files.module";
 import { HealthController } from "./health/health.controller";
@@ -55,6 +56,7 @@ const isDev = process.env.NODE_ENV !== "production";
     SearchModule,
     MatchingModule,
     AppointmentsModule,
+    BookingsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

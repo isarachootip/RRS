@@ -4,6 +4,7 @@ import { AssetStatusService } from "../assets/asset-status.service";
 import type { AuthUser } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { DataScopeService } from "../rbac/data-scope.service";
+import { completeAppointmentWithFollowUp } from "./appointment-followup.helper";
 import {
   type AppointmentRecord,
   type CalendarQueryInput,
@@ -142,11 +143,20 @@ export class AppointmentsService {
   async updateStatus(user: AuthUser, id: string, input: UpdateAppointmentStatusInput) {
     const existing = await this.getById(user, id);
     this.dataScope.scopeFor(user, "appointment.write");
-    const updated = await this.prisma.appointment.update({
-      where: { id },
-      data: { status: input.status, ...(input.note !== undefined ? { note: input.note } : {}), updatedById: user.id },
-      include: appointmentInclude,
-    });
+
+    const updated =
+      input.status === "COMPLETED"
+        ? await completeAppointmentWithFollowUp(this.prisma, user.id, existing, input)
+        : await this.prisma.appointment.update({
+            where: { id },
+            data: {
+              status: input.status,
+              ...(input.note !== undefined ? { note: input.note } : {}),
+              updatedById: user.id,
+            },
+            include: appointmentInclude,
+          });
+
     await this.assetStatus.recomputeMany(
       existing.items.map((i) => i.assetId),
       user.id,
