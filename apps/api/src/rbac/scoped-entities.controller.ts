@@ -18,4 +18,15 @@ export class ScopedEntitiesController {
     });
     return { items };
   }
+
+  @Get("teams-options")
+  @ApiOperation({ summary: "รายชื่อทีมสำหรับตัวกรองปฏิทินและฟอร์ม" })
+  async listTeamOptions() {
+    const items = await this.prisma.team.findMany({
+      where: { archivedAt: null },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    });
+    return { items };
+  }
 }

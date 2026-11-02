@@ -13,7 +13,7 @@
 | P07 | Lead + Lead Ownership | เสร็จ 2026-10-28 | `feat/p07-leads` | Lead เช่า/ซื้อ, ตรวจเบอร์ซ้ำด้วย normalizePhone ไม่รั่วไหลข้อมูลติดต่อ + ปุ่มขอร่วมงาน, โอนผู้ดูแลเฉพาะ Manager พร้อมบันทึก lead_assignments + audit TRANSFER, Kanban + Table บังคับใส่เหตุผลเมื่อย้อนสถานะ/LOST, บันทึก activities และแจ้งเตือนค้างเกิน 30 วัน |
 | P08 | ค้นหา + นำเข้าข้อมูลเดิม | เสร็จ 2026-10-28 | `feat/p08-search-import` | Global search ข้าม owners/assets/leads ด้วย pg_trgm เคารพ data scope ภายใน 300ms, คอมโพเนนต์ `<GlobalSearchBar />` บน topbar, สคริปต์ import CSV (`pnpm import:owners\|assets\|leads`) รองรับ map คอลัมน์, normalizePhone, ผูกโครงการแบบ fuzzy, `--dry-run` ออกรายงาน CSV, และ idempotent |
 | P09 | จับคู่ห้อง | เสร็จ 2026-11-02 | `feat/p09-matching` | MatchingService ดึงเงื่อนไขจาก Lead อัตโนมัติ คัดเฉพาะห้องว่างเรียงตาม matchScore, บันทึก lead_offers หลายห้องพร้อมสร้างลิงก์แชร์อายุ 7 วัน, หน้า `/share/[token]` สำหรับลูกค้าโดยไม่มี minPrice/เลขห้อง/ข้อมูลเจ้าของ |
-| P10 | นัดดูห้อง | ยังไม่เริ่ม | | |
+| P10 | นัดดูห้อง | เสร็จ 2026-11-02 | `feat/p10-appointments` | AssetStatusService.recompute(assetId), สร้างนัดหลายห้อง (appointment_items), ตรวจนัดซ้อนด้วย tstzrange overlap พร้อมเตือนให้ยืนยันก่อนบันทึก, เลื่อนนัดผูก rescheduledFromId, เปลี่ยนสถานะห้อง/Lead อัตโนมัติ, ปฏิทินทีม วัน/สัปดาห์/เดือน ที่ Agent เห็นนัดคนอื่นเป็น "ไม่ว่าง" |
 | P11 | ผลติดตาม + จอง | ยังไม่เริ่ม | | |
 | P12 | สัญญา + pipeline ขาย | ยังไม่เริ่ม | | |
 | P13 | รับเงินและรายได้ห้อง Owner | ยังไม่เริ่ม | | |

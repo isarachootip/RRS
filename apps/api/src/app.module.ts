@@ -4,6 +4,7 @@ import { ConfigModule } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { LoggerModule } from "nestjs-pino";
+import { AppointmentsModule } from "./appointments/appointments.module";
 import { AssetsModule } from "./assets/assets.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
@@ -53,6 +54,7 @@ const isDev = process.env.NODE_ENV !== "production";
     LeadsModule,
     SearchModule,
     MatchingModule,
+    AppointmentsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
