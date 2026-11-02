@@ -12,6 +12,7 @@ import { FilesModule } from "./files/files.module";
 import { HealthController } from "./health/health.controller";
 import { LeadsModule } from "./leads/leads.module";
 import { MailModule } from "./mail/mail.module";
+import { MatchingModule } from "./matching/matching.module";
 import { OwnersModule } from "./owners/owners.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RbacModule } from "./rbac/rbac.module";
@@ -51,6 +52,7 @@ const isDev = process.env.NODE_ENV !== "production";
     AssetsModule,
     LeadsModule,
     SearchModule,
+    MatchingModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

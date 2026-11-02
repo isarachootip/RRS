@@ -10,6 +10,7 @@ import {
   type LeadAssignmentItem,
   type LeadCollaboratorItem,
 } from "@/components/leads/lead-detail-panels";
+import { LeadMatchingPanel } from "@/components/leads/lead-matching-panel";
 import { Timeline } from "@/components/timeline";
 import { t, type MessageKey } from "@/i18n/th";
 import { ApiError, api } from "@/lib/api";
@@ -87,6 +88,8 @@ export default function LeadDetailPage() {
           />
         </div>
       </div>
+
+      <LeadMatchingPanel leadId={data.id} />
 
       <LeadDetailPanels
         leadId={data.id}
