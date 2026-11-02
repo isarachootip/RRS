@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   abbreviateName,
   DEFAULT_ROLE_PERMISSIONS,
+  formatBahtFromSatang,
+  formatDecimalBaht,
+  fromSatang,
   maskPhone,
   normalizePhone,
   parseAssetAttributes,
+  toSatang,
   toSqWah,
 } from "../src";
 
@@ -59,5 +63,17 @@ describe("asset attributes", () => {
 
   it("ห้องอพาร์ตเมนต์ default ไม่ให้เช่ารายวัน", () => {
     expect(parseAssetAttributes("APARTMENT_UNIT", {}).allowsDailyRent).toBe(false);
+  });
+});
+
+describe("satang integer money arithmetic", () => {
+  it("แปลงบาทเป็นสตางค์และกลับเป็นทศนิยม 2 ตำแหน่งโดยไม่ใช้ float", () => {
+    expect(toSatang("25000.50")).toBe(2500050n);
+    expect(toSatang("0.01")).toBe(1n);
+    expect(toSatang("-1250.75")).toBe(-125075n);
+    expect(fromSatang(2500050n)).toBe("25000.50");
+    expect(fromSatang(-5n)).toBe("-0.05");
+    expect(formatBahtFromSatang(123456789n)).toBe("1,234,567.89");
+    expect(formatDecimalBaht("98765.4")).toBe("98,765.40");
   });
 });

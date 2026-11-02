@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { OwnerFinanceView } from "@/components/finance/owner-finance-view";
 
 export default function Page() {
-  return <ComingSoon href="/reports" />;
+  return <OwnerFinanceView />;
 }

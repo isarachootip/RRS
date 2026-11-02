@@ -16,7 +16,7 @@
 | P10 | นัดดูห้อง | เสร็จ 2026-11-02 | `feat/p10-appointments` | AssetStatusService.recompute(assetId), สร้างนัดหลายห้อง (appointment_items), ตรวจนัดซ้อนด้วย tstzrange overlap พร้อมเตือนให้ยืนยันก่อนบันทึก, เลื่อนนัดผูก rescheduledFromId, เปลี่ยนสถานะห้อง/Lead อัตโนมัติ, ปฏิทินทีม วัน/สัปดาห์/เดือน ที่ Agent เห็นนัดคนอื่นเป็น "ไม่ว่าง" |
 | P11 | ผลติดตาม + จอง | เสร็จ 2026-11-02 | `feat/p11-followup-booking` | บังคับบันทึกผลต่อห้อง + วันติดตามถัดไปเมื่อนัดเป็น COMPLETED, สร้าง/รับชำระ/ยกเลิก Booking (ยึดหรือคืนเงินจอง), ล็อกช่วงวันที่ด้วย PostgreSQL EXCLUDE constraint พร้อมแปลง error เป็นข้อความไทยระบุรหัสที่ชนกัน, เทสต์ concurrency 10 requests ผ่าน |
 | P12 | สัญญา + pipeline ขาย | เสร็จ 2026-11-02 | `feat/p12-contracts-sales` | แปลง Booking เป็นสัญญาเช่า (LS-YYYY-NNNN), ลงนามเปลี่ยนห้องเป็น CONTRACTED + สร้าง Commission รอคำนวณ, แก้สัญญา ACTIVE ได้แถวใหม่ Revision+1 (-R2) เดิมเป็น SUPERSEDED, ต่อสัญญาผูก previousContractId, Job รายวันคืนห้องว่างหลังวันสิ้นสุด, Pipeline งานขาย 7 สถานะเปลี่ยนห้องเป็น SOLD |
-| P13 | รับเงินและรายได้ห้อง Owner | ยังไม่เริ่ม | | |
+| P13 | รับเงินและรายได้ห้อง Owner | เสร็จ 2026-11-03 | `feat/p13-owner-finance` | คำนวณเงินหน่วยสตางค์ (BigInt satang) ห้ามใช้ float, รับ/จ่ายเงินทุกประเภทพร้อมหลักฐานและ audit, สร้าง rent_schedules รายเดือนอัตโนมัติเมื่อสัญญาห้อง OWNER เป็น ACTIVE และตัดยอด DUE → PARTIAL → PAID, บันทึก expenses ตามหมวด, รายงานรายได้สุทธิ Cash Basis ทดสอบ 3 ห้อง × 12 เดือนตรงทุกสตางค์ |
 | P14 | Commission engine | ยังไม่เริ่ม | | |
 | P15 | อนุมัติและจ่ายค่านายหน้า | ยังไม่เริ่ม | | |
 | P16 | Dashboard + รายงาน | ยังไม่เริ่ม | | |

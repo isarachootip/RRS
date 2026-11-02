@@ -1,4 +1,5 @@
 import type { CommissionFormula, OwnershipType, Prisma } from "@rrs/db";
+import { generateRentSchedulesTx } from "../finance/rent-schedules.helper";
 import type { PrismaService } from "../prisma/prisma.service";
 import type { ReviseContractDto, SignContractDto } from "./contracts.types";
 
@@ -61,6 +62,15 @@ export async function ensureContractCommissionTx(
   const formula = contract.commissionFormula ?? "ONE_MONTH";
   const params = (contract.commissionParams ?? {}) as Prisma.InputJsonValue;
 
+  if (ownershipType === "OWNER") {
+    if (supersededContractId) {
+      await tx.rentSchedule.updateMany({
+        where: { contractId: supersededContractId },
+        data: { contractId: contract.id },
+      });
+    }
+    await generateRentSchedulesTx(tx, contract.id);
+  }
   if (supersededContractId) {
     const oldCom = await tx.commission.findUnique({ where: { contractId: supersededContractId } });
     if (oldCom) {
