@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fontsource/ibm-plex-sans-thai": "5.2.6",
+    "@rrs/commission": "workspace:*",
     "@rrs/shared": "workspace:*",
     "@tanstack/react-query": "5.89.0",
     "@tanstack/react-table": "8.21.3",

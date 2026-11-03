@@ -9,6 +9,7 @@ import { AssetsModule } from "./assets/assets.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { BookingsModule } from "./bookings/bookings.module";
+import { CommissionsModule } from "./commissions/commissions.module";
 import { validateEnv } from "./config/env";
 import { ContractsModule } from "./contracts/contracts.module";
 import { FilesModule } from "./files/files.module";
@@ -63,6 +64,7 @@ const isDev = process.env.NODE_ENV !== "production";
     ContractsModule,
     SaleDealsModule,
     FinanceModule,
+    CommissionsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

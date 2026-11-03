@@ -65,6 +65,9 @@ importers:
       '@node-rs/argon2':
         specifier: 2.0.2
         version: 2.0.2
+      '@rrs/commission':
+        specifier: workspace:*
+        version: link:../../packages/commission
       '@rrs/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -193,6 +196,9 @@ importers:
       '@fontsource/ibm-plex-sans-thai':
         specifier: 5.2.6
         version: 5.2.6
+      '@rrs/commission':
+        specifier: workspace:*
+        version: link:../../packages/commission
       '@rrs/shared':
         specifier: workspace:*
         version: link:../../packages/shared
