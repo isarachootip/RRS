@@ -21,6 +21,7 @@ import { MatchingModule } from "./matching/matching.module";
 import { OwnersModule } from "./owners/owners.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RbacModule } from "./rbac/rbac.module";
+import { ReportsModule } from "./reports/reports.module";
 import { SaleDealsModule } from "./sale-deals/sale-deals.module";
 import { SearchModule } from "./search/search.module";
 
@@ -65,6 +66,7 @@ const isDev = process.env.NODE_ENV !== "production";
     SaleDealsModule,
     FinanceModule,
     CommissionsModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

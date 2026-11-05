@@ -1,5 +1,5 @@
-import { OwnerFinanceView } from "@/components/finance/owner-finance-view";
+import { ReportsHubView } from "@/components/dashboard/reports-hub-view";
 
 export default function Page() {
-  return <OwnerFinanceView />;
+  return <ReportsHubView />;
 }

@@ -1,6 +1,5 @@
-import { PageHeader } from "@/components/coming-soon";
-import { t } from "@/i18n/th";
+import { ExecutiveDashboardView } from "@/components/dashboard/executive-dashboard-view";
 
 export default function DashboardPage() {
-  return <PageHeader title="dashboard.title" description={t("dashboard.intro")} />;
+  return <ExecutiveDashboardView />;
 }
