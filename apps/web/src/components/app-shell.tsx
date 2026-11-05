@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth";
 import { ApiStatus } from "./api-status";
 import { GlobalSearchBar } from "./global-search-bar";
 import { NAV, canSeeNavItem, isActive } from "./nav";
+import { NotificationBell } from "./notifications/notification-bell";
 
 const STATUS_DOTS = [
   { key: "status.AVAILABLE", className: "bg-status-available" },
@@ -153,6 +154,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <GlobalSearchBar />
           <div className="ml-auto flex items-center gap-3">
             <ApiStatus />
+            <NotificationBell />
             <UserMenu />
           </div>
         </header>

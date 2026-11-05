@@ -6,12 +6,13 @@ import { ForbiddenState } from "@/components/forbidden-state";
 import { t } from "@/i18n/th";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { NotificationRulesTab } from "./notification-rules-tab";
 import { RolesTab } from "./roles-tab";
 import { TeamsTab } from "./teams-tab";
 import type { AdminRoleItem, AdminTeamItem, AdminUserItem, PermissionCatalogItem } from "./types";
 import { UsersTab } from "./users-tab";
 
-type TabId = "users" | "teams" | "roles";
+type TabId = "users" | "teams" | "roles" | "notifications";
 
 export function SettingsView() {
   const { user } = useAuth();
@@ -48,6 +49,7 @@ export function SettingsView() {
     { id: "users", label: t("settings.tab.users") },
     { id: "teams", label: t("settings.tab.teams") },
     { id: "roles", label: t("settings.tab.roles") },
+    { id: "notifications", label: "กฎการแจ้งเตือน" },
   ];
 
   return (
@@ -88,6 +90,7 @@ export function SettingsView() {
       {activeTab === "roles" && (
         <RolesTab roles={rolesQuery.data?.roles ?? []} catalog={rolesQuery.data?.catalog ?? []} />
       )}
+      {activeTab === "notifications" && <NotificationRulesTab />}
     </div>
   );
 }

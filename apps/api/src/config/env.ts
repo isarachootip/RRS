@@ -36,6 +36,12 @@ export const envSchema = z.object({
   SMTP_URL: z.string().optional(),
   MAIL_FROM: z.string().default("RRS <no-reply@rrs.local>"),
 
+  // LINE Official Account / LINE Login (P17, D18)
+  LINE_TRANSPORT: z.enum(["log", "http"]).default("log"),
+  LINE_CHANNEL_ACCESS_TOKEN: z.string().optional(),
+  LINE_CHANNEL_SECRET: z.string().optional(),
+  LINE_LOGIN_CHANNEL_ID: z.string().optional(),
+
   // พื้นที่เก็บไฟล์ S3 / MinIO (P05)
   S3_ENDPOINT: z.string().url().default("http://localhost:9000"),
   S3_ACCESS_KEY: z.string().min(1).default("minioadmin"),
