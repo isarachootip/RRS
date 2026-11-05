@@ -1,0 +1,115 @@
+# ==============================================================================
+# RRS Production / Staging Docker Compose (D20: VPS + Docker Compose + Caddy)
+# ==============================================================================
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rrs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?กรุณาตั้งค่า POSTGRES_PASSWORD ใน .env}
+      POSTGRES_DB: ${POSTGRES_DB:-rrs_prod}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rrs} -d ${POSTGRES_DB:-rrs_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://${API_DOMAIN:-api.example.com}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+
+  portal:
+    build:
+      context: .
+      dockerfile: apps/portal/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://${API_DOMAIN:-api.example.com}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+      - web
+      - portal
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:-api.example.com}
+      BACKOFFICE_DOMAIN: ${BACKOFFICE_DOMAIN:-app.example.com}
+      PORTAL_DOMAIN: ${PORTAL_DOMAIN:-portal.example.com}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+  db-backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-14}
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+    volumes:
+      - ./scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
+      - ./backups:/backups
+    entrypoint: ["/bin/sh", "-c", "while true; do /usr/local/bin/backup-db.sh; sleep 86400; done"]
+
+volumes:
+  pgdata_prod:
+  redisdata_prod:
+  caddy_data:
+  caddy_config:

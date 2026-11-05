@@ -1,0 +1,31 @@
+{
+	email {$ACME_EMAIL:admin@example.com}
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
+{$API_DOMAIN:api.example.com} {
+	import security_headers
+	encode zstd gzip
+	reverse_proxy api:4000
+}
+
+{$BACKOFFICE_DOMAIN:app.example.com} {
+	import security_headers
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+{$PORTAL_DOMAIN:portal.example.com} {
+	import security_headers
+	encode zstd gzip
+	reverse_proxy portal:3001
+}
