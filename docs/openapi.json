@@ -1,0 +1,58 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "RRS Property Rental & Sales Management Platform API",
+    "version": "1.0.0",
+    "description": "OpenAPI specification for RRS Backoffice and Public Portal API"
+  },
+  "servers": [
+    { "url": "http://localhost:4000", "description": "Local Development Server" }
+  ],
+  "paths": {
+    "/health": {
+      "get": { "summary": "Health check endpoint", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/v1/auth/login": {
+      "post": { "summary": "เข้าสู่ระบบด้วยอีเมลและรหัสผ่าน", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/v1/owners": {
+      "get": { "summary": "รายการเจ้าของทรัพย์", "responses": { "200": { "description": "OK" } } },
+      "post": { "summary": "สร้างเจ้าของทรัพย์", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/v1/assets": {
+      "get": { "summary": "รายการสินทรัพย์", "responses": { "200": { "description": "OK" } } },
+      "post": { "summary": "สร้างสินทรัพย์", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/v1/leads": {
+      "get": { "summary": "รายการลูกค้า (Lead)", "responses": { "200": { "description": "OK" } } },
+      "post": { "summary": "สร้างลูกค้าใหม่", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/v1/appointments": {
+      "get": { "summary": "รายการนัดหมาย", "responses": { "200": { "description": "OK" } } },
+      "post": { "summary": "สร้างนัดหมายดูห้อง", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/v1/bookings": {
+      "get": { "summary": "รายการใบจอง", "responses": { "200": { "description": "OK" } } },
+      "post": { "summary": "สร้างใบจองห้อง", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/v1/contracts": {
+      "get": { "summary": "รายการสัญญาเช่า", "responses": { "200": { "description": "OK" } } },
+      "post": { "summary": "สร้างสัญญาเช่า", "responses": { "201": { "description": "Created" } } }
+    },
+    "/api/v1/commissions": {
+      "get": { "summary": "รายการค่านายหน้า", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/v1/reports/dashboard": {
+      "get": { "summary": "Executive Dashboard KPIs", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/v1/reports/summary": {
+      "get": { "summary": "รายงานสรุปรายได้และค่านายหน้า", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/v1/notifications": {
+      "get": { "summary": "รายการแจ้งเตือนของผู้ใช้", "responses": { "200": { "description": "OK" } } }
+    },
+    "/api/v1/pdpa/subjects": {
+      "get": { "summary": "ค้นหาเจ้าของข้อมูลส่วนบุคคล (PDPA DSR)", "responses": { "200": { "description": "OK" } } }
+    }
+  }
+}
