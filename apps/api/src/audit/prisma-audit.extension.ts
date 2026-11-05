@@ -23,7 +23,19 @@ const AUDITED_MODELS = new Set([
   "File",
 ]);
 
-const REDACTED_KEYS = new Set(["passwordHash", "totpSecret", "tokenHash"]);
+const REDACTED_KEYS = new Set([
+  "passwordHash",
+  "totpSecret",
+  "tokenHash",
+  "fullName",
+  "phone",
+  "lineId",
+  "email",
+  "idNumber",
+  "consentText",
+  "coordinatorName",
+  "coordinatorPhone",
+]);
 const JSON_COLUMNS = new Set(["attributes", "commissionParams", "notificationPrefs", "timing"]);
 
 function toEntityType(model: string): string {

@@ -7,12 +7,13 @@ import { t } from "@/i18n/th";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { NotificationRulesTab } from "./notification-rules-tab";
+import { PdpaTab } from "./pdpa-tab";
 import { RolesTab } from "./roles-tab";
 import { TeamsTab } from "./teams-tab";
 import type { AdminRoleItem, AdminTeamItem, AdminUserItem, PermissionCatalogItem } from "./types";
 import { UsersTab } from "./users-tab";
 
-type TabId = "users" | "teams" | "roles" | "notifications";
+type TabId = "users" | "teams" | "roles" | "notifications" | "pdpa";
 
 export function SettingsView() {
   const { user } = useAuth();
@@ -50,6 +51,7 @@ export function SettingsView() {
     { id: "teams", label: t("settings.tab.teams") },
     { id: "roles", label: t("settings.tab.roles") },
     { id: "notifications", label: "กฎการแจ้งเตือน" },
+    { id: "pdpa", label: "PDPA & สิทธิ์ข้อมูล" },
   ];
 
   return (
@@ -91,6 +93,7 @@ export function SettingsView() {
         <RolesTab roles={rolesQuery.data?.roles ?? []} catalog={rolesQuery.data?.catalog ?? []} />
       )}
       {activeTab === "notifications" && <NotificationRulesTab />}
+      {activeTab === "pdpa" && <PdpaTab />}
     </div>
   );
 }

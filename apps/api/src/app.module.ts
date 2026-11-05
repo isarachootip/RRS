@@ -20,6 +20,7 @@ import { MailModule } from "./mail/mail.module";
 import { MatchingModule } from "./matching/matching.module";
 import { NotificationsModule } from "./notifications/notifications.module";
 import { OwnersModule } from "./owners/owners.module";
+import { PdpaModule } from "./pdpa/pdpa.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RbacModule } from "./rbac/rbac.module";
 import { ReportsModule } from "./reports/reports.module";
@@ -69,6 +70,7 @@ const isDev = process.env.NODE_ENV !== "production";
     CommissionsModule,
     ReportsModule,
     NotificationsModule,
+    PdpaModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
