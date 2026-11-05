@@ -89,7 +89,7 @@ describe("P24 · PDPA ความยินยอม คำขอดู/แก�
 
   it("3) Anonymize ลบข้อมูลระบุตัวตน: ค้นหาชื่อ/เบอร์เดิมไม่เจอทั้งในตารางหลักและ audit_logs แต่ยอดในรายงานไม่เปลี่ยน", async () => {
     const dashBefore = await http()
-      .get("/api/v1/reports/dashboard?from=2026-01-01&to=2026-12-31")
+      .get("/api/v1/reports/dashboard?startDate=2026-01-01&endDate=2026-12-31")
       .set(auth(ctx.adminToken))
       .expect(200);
 
@@ -138,11 +138,11 @@ describe("P24 · PDPA ความยินยอม คำขอดู/แก�
 
     // 4. ยอดในรายงานและ Dashboard การเงินไม่เปลี่ยนแปลงแม้แต่สตางค์เดียว
     const dashAfter = await http()
-      .get("/api/v1/reports/dashboard?from=2026-01-01&to=2026-12-31")
+      .get("/api/v1/reports/dashboard?startDate=2026-01-01&endDate=2026-12-31")
       .set(auth(ctx.adminToken))
       .expect(200);
 
-    expect(dashAfter.body.kpis).toEqual(dashBefore.body.kpis);
+    expect(dashAfter.body.financials).toEqual(dashBefore.body.financials);
   });
 
   it("4) Job รายเดือนทำ anonymize อัตโนมัติสำหรับ Lead ที่ LOST และไม่มีกิจกรรมครบ 24 เดือน (D19)", async () => {
