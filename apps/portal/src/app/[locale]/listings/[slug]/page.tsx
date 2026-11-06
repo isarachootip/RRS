@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ListingCard } from "@/components/listing-card";
+import { ListingInquiryForms } from "@/components/listing-inquiry-forms";
 import { OsmMapEmbed } from "@/components/osm-map";
 import { dictionaries, isLocale, type Locale } from "@/i18n/dictionaries";
 import { buildListingJsonLd, fetchPublicListingBySlug } from "@/lib/public-api";
@@ -110,6 +111,8 @@ export default async function ListingDetailPage({ params }: Props) {
         approximateLocation={listing.asset.location.approximateLocation}
         label={title}
       />
+
+      <ListingInquiryForms listingId={listing.id} assetCode={listing.asset.code} locale={l} />
 
       {nearby.length > 0 && (
         <section className="space-y-4">
