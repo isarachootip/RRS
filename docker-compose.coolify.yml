@@ -41,12 +41,12 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      PORT: 4000
-      DATABASE_URL: ${DATABASE_URL:-postgresql://rrs:rrs_prod_password@postgres:5432/rrs_prod?schema=public}
+      API_PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-rrs}:${POSTGRES_PASSWORD:-rrs_prod_password}@postgres:5432/${POSTGRES_DB:-rrs_prod}?schema=public}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-rrs-production-jwt-access-secret-min-32-chars}
-      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-rrs-production-jwt-access-secret-key-2026-min32chars}
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
     expose:
       - "4000"
 
@@ -55,14 +55,14 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
     restart: unless-stopped
     depends_on:
       - api
     environment:
       NODE_ENV: production
       PORT: 3000
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+      INTERNAL_API_URL: http://api:4000
     expose:
       - "3000"
 
@@ -71,14 +71,14 @@ services:
       context: .
       dockerfile: apps/portal/Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_PORTAL_API_URL:-http://localhost:4000/api/v1}
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
     restart: unless-stopped
     depends_on:
       - api
     environment:
       NODE_ENV: production
       PORT: 3001
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_PORTAL_API_URL:-http://localhost:4000/api/v1}
+      INTERNAL_API_URL: http://api:4000
     expose:
       - "3001"
 

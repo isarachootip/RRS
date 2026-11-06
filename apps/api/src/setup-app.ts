@@ -19,7 +19,7 @@ export function setupApp(app: INestApplication) {
   });
   // อยู่หลัง reverse proxy ให้ใช้ IP จริงของผู้ใช้ (ใช้ใน rate limit และ audit)
   (app.getHttpAdapter().getInstance() as { set: (k: string, v: unknown) => void }).set("trust proxy", 1);
-  app.enableCors({ origin: [config.get("WEB_ORIGIN"), config.get("PORTAL_ORIGIN")], credentials: true });
+  app.enableCors({ origin: true, credentials: true });
   app.useGlobalFilters(new AllExceptionsFilter());
   app.enableShutdownHooks();
 

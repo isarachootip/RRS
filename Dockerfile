@@ -1,6 +1,7 @@
 # ==============================================================================
-# RRS Root Dockerfile (Default target for single-Dockerfile PaaS / Coolify)
-# Builds Backoffice Web (@rrs/web) by default on port 3000
+# RRS Root Dockerfile (All-in-One for Single-Dockerfile Coolify Deployment)
+# Runs PostgreSQL 16 + Redis + NestJS API (:4000) + Next.js Web (:3000)
+# Same-origin proxy: /api/* and /health on port 3000 -> 127.0.0.1:4000
 # ==============================================================================
 FROM node:22-alpine AS base
 RUN corepack enable && corepack prepare pnpm@10.18.0 --activate
@@ -18,23 +19,32 @@ COPY apps/portal/package.json ./apps/portal/
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS builder
-ARG NEXT_PUBLIC_API_URL=http://localhost:4000
+ARG NEXT_PUBLIC_API_URL=""
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 COPY packages ./packages
 COPY apps ./apps
-RUN pnpm --filter @rrs/web... build
+RUN pnpm --filter @rrs/db generate
+RUN pnpm --filter @rrs/api... build && pnpm --filter @rrs/web... build
 
 FROM node:22-alpine AS runner
-RUN corepack enable && corepack prepare pnpm@10.18.0 --activate
+RUN apk add --no-cache postgresql16 redis su-exec && \
+    corepack enable && corepack prepare pnpm@10.18.0 --activate && \
+    mkdir -p /run/postgresql /var/lib/postgresql/data && \
+    chown -R postgres:postgres /run/postgresql /var/lib/postgresql/data
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
-USER node
+ENV API_PORT=4000
+ENV INTERNAL_API_URL=http://127.0.0.1:4000
 
-COPY --from=builder --chown=node:node /app/node_modules ./node_modules
-COPY --from=builder --chown=node:node /app/package.json /app/pnpm-workspace.yaml ./
-COPY --from=builder --chown=node:node /app/packages ./packages
-COPY --from=builder --chown=node:node /app/apps/web ./apps/web
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/api ./apps/api
+COPY --from=builder /app/apps/web ./apps/web
+COPY scripts/start-all-in-one.sh ./scripts/start-all-in-one.sh
+RUN sed -i 's/\r$//' ./scripts/start-all-in-one.sh && chmod +x ./scripts/start-all-in-one.sh
 
+VOLUME ["/var/lib/postgresql/data"]
 EXPOSE 3000
-CMD ["pnpm", "--filter", "@rrs/web", "start"]
+CMD ["/bin/sh", "/app/scripts/start-all-in-one.sh"]

@@ -1,5 +1,5 @@
-/** เรียก API หลังบ้าน — error มีรูปแบบเดียวกับ ErrorBody ของ apps/api */
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+/** เรียก API หลังบ้าน — ใช้ Same-Origin (/api/v1/*) ผ่าน Next.js Rewrite Proxy เป็นค่าเริ่มต้น */
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export class ApiError extends Error {
   constructor(

@@ -17,10 +17,10 @@ COPY apps/portal/package.json ./apps/portal/
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS builder
-ARG NEXT_PUBLIC_API_URL=http://localhost:4000
+ARG NEXT_PUBLIC_API_URL=""
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-COPY packages/shared ./packages/shared
-COPY apps/web ./apps/web
+COPY packages/ ./packages/
+COPY apps/web/ ./apps/web/
 RUN pnpm --filter @rrs/web... build
 
 FROM node:22-alpine AS runner
@@ -32,7 +32,7 @@ USER node
 
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/package.json /app/pnpm-workspace.yaml ./
-COPY --from=builder --chown=node:node /app/packages/shared ./packages/shared
+COPY --from=builder --chown=node:node /app/packages ./packages
 COPY --from=builder --chown=node:node /app/apps/web ./apps/web
 
 EXPOSE 3000
