@@ -11,7 +11,7 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   setupApp(app);
   const port = app.get(ConfigService<Env, true>).get("API_PORT", { infer: true });
-  await app.listen(port);
+  await app.listen(port, "0.0.0.0");
   app.get(Logger).log(`API พร้อมที่ http://localhost:${port} (Swagger: /docs)`);
 }
 

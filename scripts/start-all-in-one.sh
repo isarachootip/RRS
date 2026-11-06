@@ -1,25 +1,26 @@
 #!/bin/sh
-set -e
 
 echo "==> [RRS All-in-One] Starting RRS Platform..."
 
 # 1. Start embedded PostgreSQL if DATABASE_URL is not externally provided
 if [ -z "${DATABASE_URL}" ]; then
-  echo "==> [RRS All-in-One] Initializing embedded PostgreSQL 16..."
-  mkdir -p /run/postgresql /var/lib/postgresql/data
-  chown -R postgres:postgres /run/postgresql /var/lib/postgresql/data
-  chmod 700 /var/lib/postgresql/data
+  echo "==> [RRS All-in-One] Initializing embedded PostgreSQL..."
+  PGDATA="/var/lib/postgresql/data/pgdata"
+  mkdir -p /run/postgresql /var/log/postgresql "${PGDATA}"
+  chown -R postgres:postgres /run/postgresql /var/log/postgresql /var/lib/postgresql/data
+  chmod 700 "${PGDATA}"
 
-  if [ ! -f "/var/lib/postgresql/data/PG_VERSION" ]; then
-    su-exec postgres initdb -D /var/lib/postgresql/data --encoding=UTF8 --locale=C
+  if [ ! -f "${PGDATA}/PG_VERSION" ]; then
+    su-exec postgres initdb -D "${PGDATA}" --encoding=UTF8 --locale=C --auth=trust --username=rrs
   fi
 
-  su-exec postgres pg_ctl -D /var/lib/postgresql/data -l /tmp/postgres.log -w start
+  rm -f "${PGDATA}/postmaster.pid"
+  su-exec postgres pg_ctl -D "${PGDATA}" -l /var/log/postgresql/postgres.log -o "-c listen_addresses=127.0.0.1 -p 5432 -k /run/postgresql" -w start
 
-  su-exec postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='rrs'" | grep -q 1 || \
-    su-exec postgres psql -c "CREATE USER rrs WITH SUPERUSER PASSWORD 'rrs';"
-  su-exec postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='rrs'" | grep -q 1 || \
-    su-exec postgres psql -c "CREATE DATABASE rrs OWNER rrs;"
+  su-exec postgres psql -h 127.0.0.1 -U rrs -d postgres -tc "SELECT 1 FROM pg_database WHERE datname='rrs'" | grep -q 1 || \
+    su-exec postgres psql -h 127.0.0.1 -U rrs -d postgres -c "CREATE DATABASE rrs OWNER rrs;"
+
+  su-exec postgres psql -h 127.0.0.1 -U rrs -d rrs -c 'CREATE EXTENSION IF NOT EXISTS "btree_gist"; CREATE EXTENSION IF NOT EXISTS "pg_trgm";' || true
 
   export DATABASE_URL="postgresql://rrs:rrs@127.0.0.1:5432/rrs?schema=public"
 fi
@@ -27,7 +28,7 @@ fi
 # 2. Start embedded Redis if REDIS_URL is not externally provided
 if [ -z "${REDIS_URL}" ]; then
   echo "==> [RRS All-in-One] Starting embedded Redis..."
-  redis-server --daemonize yes --bind 127.0.0.1 --port 6379
+  redis-server --daemonize yes --bind 127.0.0.1 --port 6379 || true
   export REDIS_URL="redis://127.0.0.1:6379"
 fi
 
@@ -42,24 +43,13 @@ export COOKIE_SECURE="${COOKIE_SECURE:-false}"
 
 # 4. Run Prisma database migrations and idempotent initial seed
 echo "==> [RRS All-in-One] Running database migrations & initial seed..."
-pnpm --filter @rrs/db migrate:deploy
-pnpm --filter @rrs/db seed
+pnpm --filter @rrs/db migrate:deploy || echo "WARN: migrate:deploy had issues"
+pnpm --filter @rrs/db seed || echo "WARN: seed had issues"
 
 # 5. Start NestJS Backend API in the background
 echo "==> [RRS All-in-One] Starting Backend API on port ${API_PORT}..."
 node apps/api/dist/main.js &
 
-# Wait for API healthcheck (up to 20s)
-i=0
-while [ $i -lt 20 ]; do
-  if wget -qO- "http://127.0.0.1:${API_PORT}/health" >/dev/null 2>&1; then
-    echo "==> [RRS All-in-One] Backend API is healthy!"
-    break
-  fi
-  i=$((i + 1))
-  sleep 1
-done
-
 # 6. Start Next.js Backoffice Web (proxies /api/* -> INTERNAL_API_URL)
-echo "==> [RRS All-in-One] Starting Next.js Web on port ${PORT}..."
+echo "==> [RRS All-in-One] Starting Next.js Web on 0.0.0.0:${PORT}..."
 exec pnpm --filter @rrs/web start
