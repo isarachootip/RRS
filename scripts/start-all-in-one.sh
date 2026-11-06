@@ -32,10 +32,12 @@ if [ -z "${REDIS_URL}" ]; then
   export REDIS_URL="redis://127.0.0.1:6379"
 fi
 
-# 3. Ensure required environment defaults for API & Web
+# 3. Ensure required environment defaults for API, Web, and Portal
 export NODE_ENV="${NODE_ENV:-production}"
-export API_PORT="${API_PORT:-4000}"
 export PORT="${PORT:-3000}"
+export API_PORT="${API_PORT:-4000}"
+export PORTAL_PORT="${PORTAL_PORT:-3001}"
+export WEB_PORT="${WEB_PORT:-3002}"
 export INTERNAL_API_URL="${INTERNAL_API_URL:-http://127.0.0.1:${API_PORT}}"
 export JWT_ACCESS_SECRET="${JWT_ACCESS_SECRET:-rrs-production-jwt-access-secret-key-2026-min32chars}"
 export TOTP_ENCRYPTION_KEY="${TOTP_ENCRYPTION_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}"
@@ -46,10 +48,16 @@ echo "==> [RRS All-in-One] Running database migrations & initial seed..."
 pnpm --filter @rrs/db migrate:deploy || echo "WARN: migrate:deploy had issues"
 pnpm --filter @rrs/db seed || echo "WARN: seed had issues"
 
-# 5. Start NestJS Backend API in the background
-echo "==> [RRS All-in-One] Starting Backend API on port ${API_PORT}..."
+# 5. Start NestJS Backend API (:4000), Public Portal (:3001), and Backoffice Web (:3002)
+echo "==> [RRS All-in-One] Starting Backend API on :${API_PORT}..."
 node apps/api/dist/main.js &
 
-# 6. Start Next.js Backoffice Web (proxies /api/* -> INTERNAL_API_URL)
-echo "==> [RRS All-in-One] Starting Next.js Web on 0.0.0.0:${PORT}..."
-exec pnpm --filter @rrs/web start
+echo "==> [RRS All-in-One] Starting Public Portal on :${PORTAL_PORT}..."
+PORT="${PORTAL_PORT}" pnpm --filter @rrs/portal start &
+
+echo "==> [RRS All-in-One] Starting Backoffice Web on :${WEB_PORT}..."
+PORT="${WEB_PORT}" pnpm --filter @rrs/web start &
+
+# 6. Start Host-based Gateway on 0.0.0.0:${PORT} (3000)
+echo "==> [RRS All-in-One] Starting Gateway on 0.0.0.0:${PORT}..."
+exec node /app/scripts/gateway.mjs

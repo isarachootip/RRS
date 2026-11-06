@@ -5,9 +5,13 @@ import { DEFAULT_LOCALE, isLocale } from "./i18n/dictionaries";
 export function middleware(req: NextRequest) {
   const first = req.nextUrl.pathname.split("/")[1] ?? "";
   if (isLocale(first)) return NextResponse.next();
-  const url = req.nextUrl.clone();
-  url.pathname = `/${DEFAULT_LOCALE}${req.nextUrl.pathname === "/" ? "" : req.nextUrl.pathname}`;
-  return NextResponse.redirect(url);
+  const proto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() || "https";
+  const host =
+    req.headers.get("x-forwarded-host")?.split(",")[0]?.trim() ||
+    req.headers.get("host") ||
+    "portalrrs.tamadee.online";
+  const path = `/${DEFAULT_LOCALE}${req.nextUrl.pathname === "/" ? "" : req.nextUrl.pathname}${req.nextUrl.search}`;
+  return NextResponse.redirect(`${proto}://${host}${path}`);
 }
 
-export const config = { matcher: ["/((?!_next|favicon.ico|robots.txt|sitemap.xml).*)"] };
+export const config = { matcher: ["/((?!api|_next|favicon.ico|robots.txt|sitemap.xml).*)"] };
