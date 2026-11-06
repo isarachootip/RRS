@@ -3,6 +3,7 @@ import "@fontsource/ibm-plex-sans-thai/600.css";
 import "../globals.css";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { CookieBanner, PortalHeader } from "@/components/portal-header";
 import { LOCALES, isLocale } from "@/i18n/dictionaries";
 
 export function generateStaticParams() {
@@ -20,7 +21,11 @@ export default async function LocaleLayout({
   if (!isLocale(locale)) notFound();
   return (
     <html lang={locale}>
-      <body>{children}</body>
+      <body className="min-h-screen bg-paper text-ink">
+        <PortalHeader locale={locale} />
+        {children}
+        <CookieBanner locale={locale} />
+      </body>
     </html>
   );
 }
