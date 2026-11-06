@@ -1,0 +1,87 @@
+# ==============================================================================
+# RRS Coolify Docker Compose Stack (PostgreSQL + Redis + API + Web + Portal)
+# ==============================================================================
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rrs}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rrs_prod_password}
+      POSTGRES_DB: ${POSTGRES_DB:-rrs_prod}
+    volumes:
+      - pgdata_coolify:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rrs} -d ${POSTGRES_DB:-rrs_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata_coolify:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://rrs:rrs_prod_password@postgres:5432/rrs_prod?schema=public}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-rrs-production-jwt-access-secret-min-32-chars}
+      TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:-0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    expose:
+      - "4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    expose:
+      - "3000"
+
+  portal:
+    build:
+      context: .
+      dockerfile: apps/portal/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_PORTAL_API_URL:-http://localhost:4000/api/v1}
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_PORTAL_API_URL:-http://localhost:4000/api/v1}
+    expose:
+      - "3001"
+
+volumes:
+  pgdata_coolify:
+  redisdata_coolify:

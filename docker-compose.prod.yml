@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-rrs}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?กรุณาตั้งค่า POSTGRES_PASSWORD ใน .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rrs_prod_password}
       POSTGRES_DB: ${POSTGRES_DB:-rrs_prod}
     volumes:
       - pgdata_prod:/var/lib/postgresql/data
@@ -40,10 +40,13 @@ services:
       redis:
         condition: service_healthy
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       NODE_ENV: production
       PORT: 4000
+      DATABASE_URL: ${DATABASE_URL:-postgresql://${POSTGRES_USER:-rrs}:${POSTGRES_PASSWORD:-rrs_prod_password}@postgres:5432/${POSTGRES_DB:-rrs_prod}?schema=public}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
 
   web:
     build:
