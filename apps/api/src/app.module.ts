@@ -16,6 +16,7 @@ import { FilesModule } from "./files/files.module";
 import { FinanceModule } from "./finance/finance.module";
 import { HealthController } from "./health/health.controller";
 import { LeadsModule } from "./leads/leads.module";
+import { ListingsModule } from "./listings/listings.module";
 import { MailModule } from "./mail/mail.module";
 import { MatchingModule } from "./matching/matching.module";
 import { NotificationsModule } from "./notifications/notifications.module";
@@ -71,6 +72,7 @@ const isDev = process.env.NODE_ENV !== "production";
     ReportsModule,
     NotificationsModule,
     PdpaModule,
+    ListingsModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

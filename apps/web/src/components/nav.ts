@@ -4,6 +4,7 @@ import {
   Building2,
   CalendarDays,
   FileSignature,
+  Globe,
   HandCoins,
   LayoutDashboard,
   Settings,
@@ -27,6 +28,13 @@ export const NAV: NavItem[] = [
   { href: "/", label: "nav.dashboard", icon: LayoutDashboard, phase: "P16", permissions: ["dashboard.read"] },
   { href: "/leads", label: "nav.leads", icon: Users, phase: "P07", permissions: ["lead.read"] },
   { href: "/assets", label: "nav.assets", icon: Building2, phase: "P06", permissions: ["asset.read"] },
+  {
+    href: "/listings",
+    label: "nav.listings",
+    icon: Globe,
+    phase: "P20",
+    permissions: ["listing.write", "listing.approve"],
+  },
   { href: "/owners", label: "nav.owners", icon: UserRound, phase: "P06", permissions: ["owner.read"] },
   {
     href: "/appointments",

@@ -8,6 +8,7 @@ export const th = {
   "nav.dashboard": "ภาพรวม",
   "nav.leads": "ลูกค้า",
   "nav.assets": "ทรัพย์สิน",
+  "nav.listings": "ประกาศเว็บ",
   "nav.owners": "เจ้าของทรัพย์",
   "nav.appointments": "นัดดูห้อง",
   "nav.deals": "จองและสัญญา",

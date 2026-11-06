@@ -31,8 +31,42 @@ export class AssetStatusService {
           ...(actorUserId ? { updatedById: actorUserId } : {}),
         },
       });
+      await this.syncListingsForAssetStatus(assetId, asset.status, nextStatus);
     }
     return nextStatus;
+  }
+
+  async syncListingsForAssetStatus(assetId: string, prevStatus: AssetStatus, nextStatus: AssetStatus): Promise<void> {
+    const closingStatuses: AssetStatus[] = ["BOOKED", "CONTRACTED", "SOLD", "UNAVAILABLE"];
+    if (closingStatuses.includes(nextStatus)) {
+      await this.prisma.listing.updateMany({
+        where: {
+          assetId,
+          archivedAt: null,
+          status: { in: ["PUBLISHED", "PENDING_APPROVAL"] },
+        },
+        data: { status: "CLOSED" },
+      });
+      return;
+    }
+
+    // D21: เมื่อห้องที่เคยปิดประกาศกลับมาว่าง (AVAILABLE) ให้เปลี่ยนเป็น PENDING_APPROVAL เพื่อให้ Manager อนุมัติซ้ำ
+    if (closingStatuses.includes(prevStatus) && nextStatus === "AVAILABLE") {
+      const now = new Date();
+      await this.prisma.listing.updateMany({
+        where: {
+          assetId,
+          archivedAt: null,
+          status: "CLOSED",
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+        data: {
+          status: "PENDING_APPROVAL",
+          approvedById: null,
+          approvedAt: null,
+        },
+      });
+    }
   }
 
   async recomputeMany(assetIds: string[], actorUserId?: string): Promise<void> {

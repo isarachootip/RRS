@@ -59,6 +59,35 @@ export const assetDetailInclude = {
 export const toDec = (n: number | null | undefined) =>
   n === undefined ? undefined : n === null ? null : new Prisma.Decimal(n.toFixed(2));
 
+export function buildAssetListWhere(
+  scopedWhere: Prisma.AssetWhereInput,
+  params: ListAssetsParams,
+): Prisma.AssetWhereInput {
+  const q = params.search?.trim();
+  return {
+    AND: [
+      scopedWhere,
+      ...(params.category ? [{ category: params.category }] : []),
+      ...(params.status ? [{ status: params.status }] : []),
+      ...(params.ownershipType ? [{ ownershipType: params.ownershipType }] : []),
+      ...(params.projectId ? [{ projectId: params.projectId }] : []),
+      ...(params.ownerId ? [{ ownerId: params.ownerId }] : []),
+      ...(q
+        ? [
+            {
+              OR: [
+                { code: { contains: q, mode: "insensitive" as const } },
+                { unitNo: { contains: q, mode: "insensitive" as const } },
+                { district: { contains: q, mode: "insensitive" as const } },
+                { project: { name: { contains: q, mode: "insensitive" as const } } },
+              ],
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
 export function buildAssetUpdateData(
   userId: string,
   input: UpsertAssetInput,

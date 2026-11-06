@@ -5,10 +5,12 @@ import type { AuthUser } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { DataScopeService } from "../rbac/data-scope.service";
 import { type AssetWithRelations, redactAssetForUser } from "../rbac/field-redaction";
+import { AssetStatusService } from "./asset-status.service";
 import {
   type ListAssetsParams,
   type UpsertAssetInput,
   assetDetailInclude,
+  buildAssetListWhere,
   buildAssetUpdateData,
   toDec,
 } from "./assets.types";
@@ -18,6 +20,7 @@ export class AssetsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly dataScope: DataScopeService,
+    private readonly assetStatus: AssetStatusService,
   ) {}
 
   private validateAttributes(category: AssetCategory, attributes: unknown): Prisma.InputJsonValue {
@@ -36,30 +39,7 @@ export class AssetsService {
     const scopedWhere = this.dataScope.where(user, "assets", "asset.read") as Prisma.AssetWhereInput;
     const page = Math.max(1, params.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 20));
-    const q = params.search?.trim();
-
-    const where: Prisma.AssetWhereInput = {
-      AND: [
-        scopedWhere,
-        ...(params.category ? [{ category: params.category }] : []),
-        ...(params.status ? [{ status: params.status }] : []),
-        ...(params.ownershipType ? [{ ownershipType: params.ownershipType }] : []),
-        ...(params.projectId ? [{ projectId: params.projectId }] : []),
-        ...(params.ownerId ? [{ ownerId: params.ownerId }] : []),
-        ...(q
-          ? [
-              {
-                OR: [
-                  { code: { contains: q, mode: "insensitive" as const } },
-                  { unitNo: { contains: q, mode: "insensitive" as const } },
-                  { district: { contains: q, mode: "insensitive" as const } },
-                  { project: { name: { contains: q, mode: "insensitive" as const } } },
-                ],
-              },
-            ]
-          : []),
-      ],
-    };
+    const where = buildAssetListWhere(scopedWhere, params);
 
     const [total, rows] = await Promise.all([
       this.prisma.asset.count({ where }),
@@ -182,11 +162,15 @@ export class AssetsService {
         ? this.validateAttributes(targetCategory, input.attributes ?? existing.attributes)
         : undefined;
 
-    return this.prisma.asset.update({
+    const updated = await this.prisma.asset.update({
       where: { id },
       data: buildAssetUpdateData(user.id, input, attributes),
       include: assetDetailInclude,
     });
+    if (input.status && input.status !== existing.status) {
+      await this.assetStatus.syncListingsForAssetStatus(id, existing.status, updated.status);
+    }
+    return updated;
   }
 
   async archive(user: AuthUser, id: string) {
