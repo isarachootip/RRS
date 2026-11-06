@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ListingCard } from "@/components/listing-card";
-import { dictionaries, isLocale, type Locale } from "@/i18n/dictionaries";
+import { buildLocaleAlternates, dictionaries, isLocale, type Locale } from "@/i18n/dictionaries";
 import { fetchPublicListings } from "@/lib/public-api";
 
 type Props = { params: Promise<{ locale: string }> };
@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${d.title} | ${d.brand}`,
     description: d.intro,
-    alternates: { languages: { th: "/th", en: "/en" } },
+    alternates: { languages: buildLocaleAlternates("") },
     openGraph: { title: d.title, description: d.intro, type: "website" },
   };
 }

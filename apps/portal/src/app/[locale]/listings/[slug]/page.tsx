@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ListingCard } from "@/components/listing-card";
 import { ListingInquiryForms } from "@/components/listing-inquiry-forms";
 import { OsmMapEmbed } from "@/components/osm-map";
-import { dictionaries, isLocale, type Locale } from "@/i18n/dictionaries";
+import { buildLocaleAlternates, dictionaries, isLocale, type Locale } from "@/i18n/dictionaries";
 import { buildListingJsonLd, fetchPublicListingBySlug } from "@/lib/public-api";
 
 type Props = { params: Promise<{ locale: string; slug: string }> };
@@ -14,16 +14,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const d = dictionaries[l];
   const data = await fetchPublicListingBySlug(slug);
   if (!data) return { title: d.brand };
-  const title = l === "en" ? data.listing.titleEn || data.listing.titleTh : data.listing.titleTh;
-  const desc = l === "en" ? data.listing.descriptionEn || data.listing.descriptionTh : data.listing.descriptionTh;
+  const title = l === "th" ? data.listing.titleTh : data.listing.titleEn || data.listing.titleTh;
+  const desc = l === "th" ? data.listing.descriptionTh : data.listing.descriptionEn || data.listing.descriptionTh;
   return {
     title: `${title} | ${d.brand}`,
     description: desc ?? title,
     alternates: {
-      languages: {
-        th: `/th/listings/${slug}`,
-        en: `/en/listings/${slug}`,
-      },
+      languages: buildLocaleAlternates(`/listings/${slug}`),
     },
     openGraph: { title, description: desc ?? title, type: "article" },
   };
@@ -37,8 +34,8 @@ export default async function ListingDetailPage({ params }: Props) {
   if (!data) notFound();
 
   const { listing, nearby } = data;
-  const title = l === "en" ? listing.titleEn || listing.titleTh : listing.titleTh;
-  const description = l === "en" ? listing.descriptionEn || listing.descriptionTh : listing.descriptionTh;
+  const title = l === "th" ? listing.titleTh : listing.titleEn || listing.titleTh;
+  const description = l === "th" ? listing.descriptionTh : listing.descriptionEn || listing.descriptionTh;
   const priceSuffix = listing.type === "RENT" ? d.priceSuffixRent : d.priceSuffixSale;
   const jsonLd = buildListingJsonLd(listing, l);
 

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ListingCard } from "@/components/listing-card";
 import { OsmMapEmbed } from "@/components/osm-map";
-import { dictionaries, isLocale, type Locale } from "@/i18n/dictionaries";
+import { buildLocaleAlternates, dictionaries, isLocale, type Locale } from "@/i18n/dictionaries";
 import { fetchPublicListings } from "@/lib/public-api";
 
 type Props = {
@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${d.navSearch} | ${d.brand}`,
     description: d.intro,
-    alternates: { languages: { th: "/th/listings", en: "/en/listings" } },
+    alternates: { languages: buildLocaleAlternates("/listings") },
   };
 }
 

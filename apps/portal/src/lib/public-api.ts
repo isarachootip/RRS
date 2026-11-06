@@ -143,8 +143,8 @@ export async function fetchPublicListingBySlug(
 }
 
 export function buildListingJsonLd(item: PublicListingItem, locale: Locale): Record<string, unknown> {
-  const title = locale === "en" ? item.titleEn || item.titleTh : item.titleTh;
-  const description = locale === "en" ? item.descriptionEn || item.descriptionTh : item.descriptionTh;
+  const title = locale === "th" ? item.titleTh : item.titleEn || item.titleTh;
+  const description = locale === "th" ? item.descriptionTh : item.descriptionEn || item.descriptionTh;
   return {
     "@context": "https://schema.org",
     "@type": "RealEstateListing",

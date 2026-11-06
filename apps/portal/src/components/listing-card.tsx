@@ -28,7 +28,7 @@ function writeStoredList(key: string, items: PublicListingItem[]): void {
 
 export function ListingCard({ item, locale }: { item: PublicListingItem; locale: Locale }) {
   const d = dictionaries[locale];
-  const title = locale === "en" ? item.titleEn || item.titleTh : item.titleTh;
+  const title = locale === "th" ? item.titleTh : item.titleEn || item.titleTh;
   const priceSuffix = item.type === "RENT" ? d.priceSuffixRent : d.priceSuffixSale;
   const [isFav, setIsFav] = useState(false);
   const [isCompared, setIsCompared] = useState(false);

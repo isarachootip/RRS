@@ -1,14 +1,25 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { dictionaries, type Locale } from "@/i18n/dictionaries";
+import { LOCALES, LOCALE_LABELS, dictionaries, type Locale } from "@/i18n/dictionaries";
 
 const COOKIE_CONSENT_KEY = "rrs_cookie_consent_v1";
 
 export function PortalHeader({ locale }: { locale: Locale }) {
   const d = dictionaries[locale];
-  const other: Locale = locale === "th" ? "en" : "th";
+  const pathname = usePathname() || `/${locale}`;
+  const router = useRouter();
+
+  const buildPathForLocale = (targetLocale: Locale): string => {
+    const segments = pathname.split("/");
+    if (segments.length > 1 && (LOCALES as readonly string[]).includes(segments[1] ?? "")) {
+      segments[1] = targetLocale;
+      return segments.join("/") || `/${targetLocale}`;
+    }
+    return `/${targetLocale}`;
+  };
 
   return (
     <header className="border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -36,13 +47,19 @@ export function PortalHeader({ locale }: { locale: Locale }) {
           >
             {d.navSubmitProperty}
           </Link>
-          <Link
-            href={`/${other}`}
-            hrefLang={other}
-            className="rounded border border-slate-300 px-2.5 py-1 text-xs font-semibold text-lagoon hover:bg-slate-50"
+
+          <select
+            aria-label={d.switchTo}
+            value={locale}
+            onChange={(e) => router.push(buildPathForLocale(e.target.value as Locale))}
+            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-lagoon hover:bg-slate-50"
           >
-            {d.switchTo}
-          </Link>
+            {LOCALES.map((loc) => (
+              <option key={loc} value={loc}>
+                {LOCALE_LABELS[loc]}
+              </option>
+            ))}
+          </select>
         </nav>
       </div>
     </header>
