@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-const internalApiUrl = process.env.INTERNAL_API_URL ?? "http://127.0.0.1:4000";
+const internalApiUrl = process.env.INTERNAL_API_URL ?? "https://rrs.tamadee.online";
 
 const config: NextConfig = {
   reactStrictMode: true,

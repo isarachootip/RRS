@@ -100,7 +100,7 @@ export function getApiBaseUrl(): string {
   if (typeof window !== "undefined") {
     return process.env.NEXT_PUBLIC_API_URL || "/api/v1";
   }
-  return process.env.NEXT_PUBLIC_API_URL || `${process.env.INTERNAL_API_URL ?? "http://127.0.0.1:4000"}/api/v1`;
+  return process.env.NEXT_PUBLIC_API_URL || `${process.env.INTERNAL_API_URL ?? "https://rrs.tamadee.online"}/api/v1`;
 }
 
 export async function fetchPublicListings(
@@ -112,7 +112,7 @@ export async function fetchPublicListings(
   }
   try {
     const res = await fetch(`${getApiBaseUrl()}/public/listings?${qs.toString()}`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (res.ok) {
       const data = (await res.json()) as { total: number; items: PublicListingItem[] };
@@ -129,7 +129,7 @@ export async function fetchPublicListingBySlug(
 ): Promise<{ listing: PublicListingItem; nearby: PublicListingItem[] } | null> {
   try {
     const res = await fetch(`${getApiBaseUrl()}/public/listings/${encodeURIComponent(slug)}`, {
-      next: { revalidate: 60 },
+      cache: "no-store",
     });
     if (res.ok) {
       return (await res.json()) as { listing: PublicListingItem; nearby: PublicListingItem[] };

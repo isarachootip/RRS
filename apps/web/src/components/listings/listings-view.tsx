@@ -5,6 +5,8 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
+const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portalrrs.tamadee.online";
+
 interface BackofficeListingItem {
   id: string;
   slug: string;
@@ -80,21 +82,31 @@ export function ListingsView() {
         <div>
           <h1 className="text-xl font-bold text-slate-900">ประกาศเว็บสาธารณะ (Public Portal Listings)</h1>
           <p className="text-sm text-slate-600">
-            สร้างประกาศเช่า/ขาย ส่งให้ Manager อนุมัติ และปิดอัตโนมัติเมื่อห้องไม่ว่าง
+            สร้างประกาศเช่า/ขาย ส่งให้ Manager อนุมัติ และแสดงผลบนเว็บ portalrrs.tamadee.online
           </p>
         </div>
-        <select
-          aria-label="กรองสถานะประกาศ"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-        >
-          <option value="">ทุกสถานะ</option>
-          <option value="DRAFT">ฉบับร่าง</option>
-          <option value="PENDING_APPROVAL">รออนุมัติ</option>
-          <option value="PUBLISHED">เผยแพร่แล้ว</option>
-          <option value="CLOSED">ปิดประกาศ</option>
-        </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href={`${PORTAL_URL}/th`}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg border border-teal-700 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-100"
+          >
+            🌐 เปิดเว็บหน้าบ้าน (portalrrs.tamadee.online)
+          </a>
+          <select
+            aria-label="กรองสถานะประกาศ"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="">ทุกสถานะ</option>
+            <option value="DRAFT">ฉบับร่าง</option>
+            <option value="PENDING_APPROVAL">รออนุมัติ</option>
+            <option value="PUBLISHED">เผยแพร่แล้ว</option>
+            <option value="CLOSED">ปิดประกาศ</option>
+          </select>
+        </div>
       </div>
 
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -187,13 +199,23 @@ export function ListingsView() {
                       </button>
                     )}
                     {item.status === "PUBLISHED" && (
-                      <button
-                        type="button"
-                        onClick={() => actionMut.mutate({ id: item.id, action: "close" })}
-                        className="rounded bg-slate-200 px-2.5 py-1 text-xs font-medium text-slate-800"
-                      >
-                        ปิดประกาศ
-                      </button>
+                      <>
+                        <a
+                          href={`${PORTAL_URL}/th/listings/${item.slug}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 hover:bg-teal-100"
+                        >
+                          ดูโพสต์บนเว็บ ↗
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => actionMut.mutate({ id: item.id, action: "close" })}
+                          className="rounded bg-slate-200 px-2.5 py-1 text-xs font-medium text-slate-800"
+                        >
+                          ปิดประกาศ
+                        </button>
+                      </>
                     )}
                   </div>
                 </td>
