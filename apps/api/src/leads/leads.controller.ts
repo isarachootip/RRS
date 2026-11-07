@@ -82,6 +82,7 @@ const CreateLeadSchema = z.object({
   petRequired: z.boolean().optional(),
   specialNote: z.string().max(2000).nullish(),
   source: LeadSourceEnum,
+  ownerAgentId: z.string().uuid().nullish(),
   nextFollowUpAt: z.string().nullish(),
 });
 

@@ -186,4 +186,48 @@ describe("P07 Lead Components", () => {
     });
     expect(onSaved).toHaveBeenCalled();
   });
+
+  it("LeadFormModal supports 2-section form (ownerAgent + deep preferences) and Save & Open Matching button", async () => {
+    const apiMock = vi.mocked(apiModule.api).mockImplementation(async (path: string) => {
+      if (path === "/api/v1/agents") {
+        return { items: [{ id: "agent-2", fullName: "เซลส์ สมหญิง", teamId: null }] };
+      }
+      if (path === "/api/v1/projects") {
+        return { items: [{ id: "proj-1", name: "Ideo Asoke" }] };
+      }
+      return { id: "new-lead-99", code: "LD-000099" };
+    });
+    const onClose = vi.fn();
+    const onSaved = vi.fn();
+    const onSavedAndOpen = vi.fn();
+
+    render(<LeadFormModal open={true} onClose={onClose} onSaved={onSaved} onSavedAndOpen={onSavedAndOpen} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("option", { name: "เซลส์ สมหญิง" })).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText("ชื่อ-นามสกุล"), {
+      target: { value: "คุณลูกค้า ใหม่" },
+    });
+    fireEvent.change(screen.getByLabelText("ผู้ดูแลลูกค้า"), {
+      target: { value: "agent-2" },
+    });
+    fireEvent.change(screen.getByLabelText("รูปแบบห้องที่ต้องการ"), {
+      target: { value: "TWO_BEDROOMS" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "บันทึกและเปิดหน้าจับคู่ห้อง" }));
+
+    await waitFor(() => {
+      expect(apiMock).toHaveBeenCalledWith(
+        "/api/v1/leads",
+        expect.objectContaining({
+          method: "POST",
+          body: expect.stringContaining('"ownerAgentId":"agent-2"'),
+        }),
+      );
+    });
+    expect(onSavedAndOpen).toHaveBeenCalledWith("new-lead-99");
+  });
 });

@@ -139,6 +139,7 @@ export function redactLeadInList(user: AuthUser, lead: LeadWithRelations) {
     createdAt: lead.createdAt ?? null,
     ownerAgentId: lead.ownerAgentId,
     ownerAgentName: lead.ownerAgent?.fullName ?? null,
+    ownerAgent: lead.ownerAgent ? { id: lead.ownerAgent.id, fullName: lead.ownerAgent.fullName } : undefined,
     isOwn: isAccessible,
   };
 }

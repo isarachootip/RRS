@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useState } from "react";
 import { ConfirmArchiveDialog } from "@/components/confirm-archive-dialog";
 import { LeadFormModal } from "@/components/leads/lead-form-modal";
@@ -11,13 +12,14 @@ import { t, type MessageKey } from "@/i18n/th";
 import { api } from "@/lib/api";
 
 interface LeadsResponse {
-  items: LeadItem[];
+  items: Array<LeadItem & { ownerAgentName?: string | null }>;
   total: number;
 }
 
-const columnHelper = createColumnHelper<LeadItem>();
+const columnHelper = createColumnHelper<LeadItem & { ownerAgentName?: string | null }>();
 
 export function LeadsView() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
@@ -66,7 +68,7 @@ export function LeadsView() {
       columnHelper.display({
         id: "ownerAgent",
         header: "ผู้ดูแล",
-        cell: (info) => info.row.original.ownerAgent?.fullName ?? "-",
+        cell: (info) => info.row.original.ownerAgent?.fullName ?? info.row.original.ownerAgentName ?? "-",
       }),
       columnHelper.display({
         id: "actions",
@@ -166,7 +168,13 @@ export function LeadsView() {
         </div>
       )}
 
-      <LeadFormModal open={modalOpen} initial={editingLead} onClose={() => { setModalOpen(false); setEditingLead(null); }} onSaved={refresh} />
+      <LeadFormModal
+        open={modalOpen}
+        initial={editingLead}
+        onClose={() => { setModalOpen(false); setEditingLead(null); }}
+        onSaved={refresh}
+        onSavedAndOpen={(newId) => router.push(`/leads/${newId}`)}
+      />
     </div>
   );
 }

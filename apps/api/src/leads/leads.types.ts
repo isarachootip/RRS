@@ -33,6 +33,7 @@ export interface UpsertLeadInput {
   petRequired?: boolean;
   specialNote?: string | null;
   source?: LeadSource;
+  ownerAgentId?: string | null;
   nextFollowUpAt?: string | null;
 }
 
@@ -92,6 +93,7 @@ export function buildLeadCreateData(
   phone: string | null,
   input: UpsertLeadInput & { fullName: string; source: LeadSource },
 ): Prisma.LeadUncheckedCreateInput {
+  const targetOwnerId = input.ownerAgentId || userId;
   return {
     code,
     intent: input.intent ?? "RENT",
@@ -113,13 +115,13 @@ export function buildLeadCreateData(
     petRequired: input.petRequired ?? false,
     specialNote: input.specialNote ?? null,
     source: input.source,
-    ownerAgentId: userId,
+    ownerAgentId: targetOwnerId,
     lastActivityAt: new Date(),
     nextFollowUpAt: input.nextFollowUpAt ? new Date(input.nextFollowUpAt) : null,
     createdById: userId,
     updatedById: userId,
     assignments: {
-      create: { fromUserId: null, toUserId: userId, assignedById: userId, reason: "สร้างรายการลูกค้าใหม่" },
+      create: { fromUserId: null, toUserId: targetOwnerId, assignedById: userId, reason: "สร้างรายการลูกค้าใหม่" },
     },
   };
 }
@@ -135,11 +137,21 @@ export function buildLeadUpdateData(
     ...(phone !== undefined ? { phone } : {}),
     ...(input.lineId !== undefined ? { lineId: input.lineId } : {}),
     ...(input.email !== undefined ? { email: input.email } : {}),
+    ...(input.nationality !== undefined ? { nationality: input.nationality } : {}),
     ...(input.budgetMin !== undefined ? { budgetMin: toDec(input.budgetMin) } : {}),
     ...(input.budgetMax !== undefined ? { budgetMax: toDec(input.budgetMax) } : {}),
     ...(input.preferredLocation !== undefined ? { preferredLocation: input.preferredLocation } : {}),
+    ...(input.preferredProjectId !== undefined ? { preferredProjectId: input.preferredProjectId } : {}),
     ...(input.preferredCategory !== undefined ? { preferredCategory: input.preferredCategory } : {}),
+    ...(input.preferredRoomType !== undefined ? { preferredRoomType: input.preferredRoomType } : {}),
+    ...(input.minAreaSqm !== undefined ? { minAreaSqm: toDec(input.minAreaSqm) } : {}),
+    ...(input.occupants !== undefined ? { occupants: input.occupants } : {}),
+    ...(input.moveInDate !== undefined ? { moveInDate: input.moveInDate ? new Date(input.moveInDate) : null } : {}),
+    ...(input.leaseMonths !== undefined ? { leaseMonths: input.leaseMonths } : {}),
+    ...(input.petRequired !== undefined ? { petRequired: input.petRequired } : {}),
     ...(input.specialNote !== undefined ? { specialNote: input.specialNote } : {}),
+    ...(input.source !== undefined ? { source: input.source } : {}),
+    ...(input.ownerAgentId ? { ownerAgentId: input.ownerAgentId } : {}),
     updatedById: userId,
   };
 }
