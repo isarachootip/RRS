@@ -145,4 +145,45 @@ describe("P07 Lead Components", () => {
       );
     });
   });
+
+  it("LeadFormModal supports editing existing lead via PATCH /api/v1/leads/:id", async () => {
+    const apiMock = vi.mocked(apiModule.api).mockResolvedValue({ items: [] });
+    const onClose = vi.fn();
+    const onSaved = vi.fn();
+
+    render(
+      <LeadFormModal
+        open={true}
+        initial={{
+          id: "lead-edit-1",
+          code: "LD-000099",
+          intent: "BUY",
+          fullName: "คุณแก้ไข เดิม",
+          phone: "0819998888",
+          status: "NEW",
+          budgetMin: 2000000,
+          budgetMax: 3000000,
+          preferredLocation: "ลาดพร้าว",
+          ownerAgentId: "agent-a",
+        }}
+        onClose={onClose}
+        onSaved={onSaved}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("ชื่อ-นามสกุล"), {
+      target: { value: "คุณแก้ไข ใหม่" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "บันทึก" }));
+
+    await waitFor(() => {
+      expect(apiMock).toHaveBeenCalledWith(
+        "/api/v1/leads/lead-edit-1",
+        expect.objectContaining({
+          method: "PATCH",
+        }),
+      );
+    });
+    expect(onSaved).toHaveBeenCalled();
+  });
 });

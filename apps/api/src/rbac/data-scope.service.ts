@@ -29,12 +29,18 @@ export class DataScopeService {
     return scope;
   }
 
-  where(user: AuthUser, entity: ScopeEntity, permission?: PermissionCode): Record<string, unknown> {
+  where(
+    user: AuthUser,
+    entity: ScopeEntity,
+    permission?: PermissionCode,
+    options?: { archived?: boolean },
+  ): Record<string, unknown> {
     const perm = permission ?? DEFAULT_READ_PERMISSION[entity];
     const scope = this.scopeFor(user, perm);
-    if (scope === "ALL") return { archivedAt: null };
-    if (scope === "TEAM") return this.teamWhere(user.teamId!, entity);
-    return this.ownWhere(user.id, entity);
+    const archivedFilter = options?.archived ? { not: null } : null;
+    if (scope === "ALL") return { archivedAt: archivedFilter };
+    if (scope === "TEAM") return { ...this.teamWhere(user.teamId!, entity), archivedAt: archivedFilter };
+    return { ...this.ownWhere(user.id, entity), archivedAt: archivedFilter };
   }
 
   private teamWhere(teamId: string, entity: ScopeEntity): Record<string, unknown> {

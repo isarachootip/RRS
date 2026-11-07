@@ -23,6 +23,7 @@ const ListQuerySchema = z.object({
   search: z.string().optional(),
   status: OwnerStatusEnum.optional(),
   agentId: z.string().uuid().optional(),
+  archived: z.enum(["true", "false"]).optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
   sortBy: z.enum(["createdAt", "code", "fullName"]).optional(),

@@ -7,6 +7,7 @@ export interface ListAssetsParams {
   ownershipType?: OwnershipType;
   projectId?: string;
   ownerId?: string;
+  archived?: "true" | "false";
   page?: number;
   pageSize?: number;
   sortBy?: "createdAt" | "code" | "rentPrice" | "salePrice";

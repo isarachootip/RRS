@@ -6,6 +6,7 @@ export interface ListLeadsParams {
   intent?: LeadIntent;
   ownerAgentId?: string;
   includeDirectory?: string;
+  archived?: "true" | "false";
   page?: number;
   pageSize?: number;
   sortBy?: "createdAt" | "code" | "fullName" | "nextFollowUpAt";

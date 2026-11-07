@@ -89,4 +89,47 @@ describe("P06 · AssetFormModal และ BulkApartmentModal", () => {
 
     await waitFor(() => expect(onBulkSaved).toHaveBeenCalledTimes(1));
   });
+
+  it("AssetFormModal รองรับการแก้ไขทรัพย์สินเดิมผ่าน PATCH /api/v1/assets/:id", async () => {
+    const user = userEvent.setup();
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const onSaved = vi.fn();
+
+    mockFetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/v1/owners")) {
+        return { ok: true, json: async () => ({ items: [{ id: "ow-1", code: "OW-000001", fullName: "เจ้าของ A" }] }) };
+      }
+      return { ok: true, json: async () => ({ id: "asset-1" }) };
+    });
+
+    render(
+      <QueryClientProvider client={qc}>
+        <AssetFormModal
+          initial={{
+            id: "asset-1",
+            code: "PR-000001",
+            category: "CONDO",
+            ownershipType: "OWNER",
+            unitNo: "1205",
+            rentPrice: "18000",
+            minRentPrice: "16000",
+          }}
+          onClose={vi.fn()}
+          onSaved={onSaved}
+        />
+      </QueryClientProvider>,
+    );
+
+    const rentInput = screen.getByLabelText("ราคาเช่าต่อเดือน");
+    await user.clear(rentInput);
+    await user.type(rentInput, "20000");
+    await user.click(screen.getByRole("button", { name: "บันทึกทรัพย์สิน" }));
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/v1/assets/asset-1"),
+      expect.objectContaining({ method: "PATCH" }),
+    );
+  });
 });

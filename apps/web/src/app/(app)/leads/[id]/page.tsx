@@ -2,6 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { ConfirmArchiveDialog } from "@/components/confirm-archive-dialog";
 import { ForbiddenState } from "@/components/forbidden-state";
 import {
@@ -10,6 +11,7 @@ import {
   type LeadAssignmentItem,
   type LeadCollaboratorItem,
 } from "@/components/leads/lead-detail-panels";
+import { LeadFormModal } from "@/components/leads/lead-form-modal";
 import { LeadMatchingPanel } from "@/components/leads/lead-matching-panel";
 import { Timeline } from "@/components/timeline";
 import { t, type MessageKey } from "@/i18n/th";
@@ -23,11 +25,13 @@ interface LeadDetail {
   phone: string | null;
   lineId: string | null;
   email: string | null;
+  source?: string | null;
   status: string;
   statusReason: string | null;
   budgetMin: string | number | null;
   budgetMax: string | number | null;
   preferredLocation: string | null;
+  ownerAgentId: string;
   ownerAgent?: { id: string; fullName: string };
   activities?: LeadActivityItem[];
   assignments?: LeadAssignmentItem[];
@@ -39,6 +43,7 @@ export default function LeadDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const id = params?.id ?? "";
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data, error, isLoading } = useQuery({
     queryKey: ["lead", id],
@@ -74,18 +79,30 @@ export default function LeadDetailPage() {
               {data.code} · {t(`leads.intent.${data.intent ?? "RENT"}` as MessageKey)}
             </p>
             <h1 className="text-xl font-semibold text-ink">{data.fullName}</h1>
-            <p className="text-sm text-ink-muted">เบอร์โทรศัพท์: {data.phone ?? "-"}</p>
+            <p className="text-sm text-ink-muted">
+              เบอร์โทรศัพท์: {data.phone ?? "-"} · LINE: {data.lineId ?? "-"} · อีเมล: {data.email ?? "-"}
+            </p>
             <p className="text-xs text-ink-muted">
-              สถานะ: {t(`leads.status.${data.status}` as MessageKey)} · ผู้ดูแล: {data.ownerAgent?.fullName ?? "-"}
+              สถานะ: {t(`leads.status.${data.status}` as MessageKey) ?? data.status} · ผู้ดูแล:{" "}
+              {data.ownerAgent?.fullName ?? "-"}
             </p>
           </div>
-          <ConfirmArchiveDialog
-            itemLabel={data.fullName}
-            onConfirm={async () => {
-              await api(`/api/v1/leads/${data.id}/archive`, { method: "POST" });
-              router.push("/leads");
-            }}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+            >
+              แก้ไขข้อมูลลูกค้า
+            </button>
+            <ConfirmArchiveDialog
+              itemLabel={data.fullName}
+              onConfirm={async () => {
+                await api(`/api/v1/leads/${data.id}/archive`, { method: "POST" });
+                router.push("/leads");
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -100,6 +117,8 @@ export default function LeadDetailPage() {
       />
 
       <Timeline entityType="lead" entityId={data.id} />
+
+      <LeadFormModal open={editOpen} initial={data} onClose={() => setEditOpen(false)} onSaved={refresh} />
     </div>
   );
 }

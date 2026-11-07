@@ -33,6 +33,7 @@ export const listBackofficeListingsSchema = z.object({
   type: z.enum(["RENT", "SALE"]).optional(),
   assetId: z.string().uuid().optional(),
   search: z.string().optional(),
+  archived: z.enum(["true", "false"]).optional(),
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
 });

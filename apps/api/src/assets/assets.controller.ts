@@ -36,6 +36,7 @@ const ListAssetsQuerySchema = z.object({
   ownershipType: OwnershipTypeEnum.optional(),
   projectId: z.string().uuid().optional(),
   ownerId: z.string().uuid().optional(),
+  archived: z.enum(["true", "false"]).optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
   sortBy: z.enum(["createdAt", "code", "rentPrice", "salePrice"]).optional(),

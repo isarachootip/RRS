@@ -2,24 +2,14 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { ConfirmArchiveDialog } from "@/components/confirm-archive-dialog";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { type EditableListingItem, ListingEditModal } from "./listing-edit-modal";
 
 const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL ?? "https://portalrrs.tamadee.online";
 
-interface BackofficeListingItem {
-  id: string;
-  slug: string;
-  type: "RENT" | "SALE";
-  status: "DRAFT" | "PENDING_APPROVAL" | "PUBLISHED" | "CLOSED";
-  titleTh: string;
-  titleEn: string | null;
-  price: string | number;
-  viewCount: number;
-  asset: { id: string; code: string; category: string; status: string };
-}
-
-const STATUS_LABELS: Record<BackofficeListingItem["status"], string> = {
+const STATUS_LABELS: Record<EditableListingItem["status"], string> = {
   DRAFT: "ฉบับร่าง",
   PENDING_APPROVAL: "รออนุมัติ",
   PUBLISHED: "เผยแพร่แล้ว",
@@ -30,49 +20,50 @@ export function ListingsView() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [archived, setArchived] = useState<"false" | "true">("false");
   const [assetId, setAssetId] = useState("");
   const [type, setType] = useState<"RENT" | "SALE">("RENT");
   const [price, setPrice] = useState("25000");
   const [titleTh, setTitleTh] = useState("");
   const [titleEn, setTitleEn] = useState("");
+  const [editingListing, setEditingListing] = useState<EditableListingItem | null>(null);
+
   const canApprove = Boolean(
     user?.roles.includes("ADMIN") || user?.roles.includes("MANAGER") || user?.permissions?.["listing.approve"],
   );
+
   const listingsQuery = useQuery({
-    queryKey: ["listings", statusFilter],
-    queryFn: () =>
-      api<{ total: number; items: BackofficeListingItem[] }>(
-        `/api/v1/listings${statusFilter ? `?status=${statusFilter}` : ""}`,
-      ),
+    queryKey: ["listings", statusFilter, archived],
+    queryFn: () => {
+      const qs = new URLSearchParams();
+      if (statusFilter) qs.set("status", statusFilter);
+      if (archived === "true") qs.set("archived", "true");
+      return api<{ total: number; items: EditableListingItem[] }>(`/api/v1/listings?${qs.toString()}`);
+    },
   });
+
   const assetsQuery = useQuery({
     queryKey: ["assets-for-listings"],
     queryFn: () => api<{ items: Array<{ id: string; code: string; category: string }> }>("/api/v1/assets?pageSize=50"),
   });
+
+  const refresh = () => void qc.invalidateQueries({ queryKey: ["listings"] });
+
   const createMut = useMutation({
     mutationFn: () =>
       api("/api/v1/listings", {
         method: "POST",
-        body: JSON.stringify({
-          assetId,
-          type,
-          price: Number(price),
-          titleTh,
-          titleEn: titleEn || null,
-          submitForApproval: true,
-        }),
+        body: JSON.stringify({ assetId, type, price: Number(price), titleTh, titleEn: titleEn || null, submitForApproval: true }),
       }),
-    onSuccess: () => {
-      setTitleTh("");
-      setTitleEn("");
-      qc.invalidateQueries({ queryKey: ["listings"] });
-    },
+    onSuccess: () => { setTitleTh(""); setTitleEn(""); refresh(); },
   });
+
   const actionMut = useMutation({
     mutationFn: ({ id, action }: { id: string; action: "submit" | "approve" | "close" }) =>
       api(`/api/v1/listings/${id}/${action}`, { method: "POST" }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["listings"] }),
+    onSuccess: refresh,
   });
+
   const items = listingsQuery.data?.items ?? [];
   const assets = assetsQuery.data?.items ?? [];
 
@@ -81,30 +72,22 @@ export function ListingsView() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">ประกาศเว็บสาธารณะ (Public Portal Listings)</h1>
-          <p className="text-sm text-slate-600">
-            สร้างประกาศเช่า/ขาย ส่งให้ Manager อนุมัติ และแสดงผลบนเว็บ portalrrs.tamadee.online
-          </p>
+          <p className="text-sm text-slate-600">สร้างประกาศเช่า/ขาย ส่งให้ Manager อนุมัติ และแสดงผลบนเว็บ portalrrs.tamadee.online</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <a
-            href={`${PORTAL_URL}/th`}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-lg border border-teal-700 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-100"
-          >
+          <a href={`${PORTAL_URL}/th`} target="_blank" rel="noreferrer" className="rounded-lg border border-teal-700 bg-teal-50 px-3 py-2 text-sm font-medium text-teal-800 hover:bg-teal-100">
             🌐 เปิดเว็บหน้าบ้าน (portalrrs.tamadee.online)
           </a>
-          <select
-            aria-label="กรองสถานะประกาศ"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-          >
+          <select aria-label="กรองสถานะประกาศ" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
             <option value="">ทุกสถานะ</option>
             <option value="DRAFT">ฉบับร่าง</option>
             <option value="PENDING_APPROVAL">รออนุมัติ</option>
             <option value="PUBLISHED">เผยแพร่แล้ว</option>
             <option value="CLOSED">ปิดประกาศ</option>
+          </select>
+          <select aria-label="กรองประกาศเก็บเข้ากรุ" value={archived} onChange={(e) => setArchived(e.target.value as "false" | "true")} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+            <option value="false">รายการปกติ</option>
+            <option value="true">เก็บเข้ากรุแล้ว (Archived)</option>
           </select>
         </div>
       </div>
@@ -112,56 +95,20 @@ export function ListingsView() {
       <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold text-slate-800">สร้างประกาศใหม่และส่งขออนุมัติ</h2>
         <div className="grid gap-3 md:grid-cols-4">
-          <select
-            aria-label="เลือกทรัพย์สิน"
-            value={assetId}
-            onChange={(e) => setAssetId(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
+          <select aria-label="เลือกทรัพย์สิน" value={assetId} onChange={(e) => setAssetId(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
             <option value="">-- เลือกทรัพย์สิน --</option>
-            {assets.map((a) => (
-              <option key={a.id} value={a.id}>{`${a.code} (${a.category})`}</option>
-            ))}
+            {assets.map((a) => <option key={a.id} value={a.id}>{`${a.code} (${a.category})`}</option>)}
           </select>
-          <select
-            aria-label="ประเภทประกาศ"
-            value={type}
-            onChange={(e) => setType(e.target.value as "RENT" | "SALE")}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
+          <select aria-label="ประเภทประกาศ" value={type} onChange={(e) => setType(e.target.value as "RENT" | "SALE")} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
             <option value="RENT">ให้เช่า (RENT)</option>
             <option value="SALE">ขาย (SALE)</option>
           </select>
-          <input
-            aria-label="ราคาประกาศ"
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            placeholder="ราคาประกาศ (บาท)"
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
-          <input
-            aria-label="หัวข้อภาษาไทย"
-            value={titleTh}
-            onChange={(e) => setTitleTh(e.target.value)}
-            placeholder="หัวข้อประกาศภาษาไทย"
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
+          <input aria-label="ราคาประกาศ" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="ราคาประกาศ (บาท)" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <input aria-label="หัวข้อภาษาไทย" value={titleTh} onChange={(e) => setTitleTh(e.target.value)} placeholder="หัวข้อประกาศภาษาไทย" className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
         </div>
         <div className="mt-3 flex flex-wrap gap-3">
-          <input
-            aria-label="หัวข้อภาษาอังกฤษ"
-            value={titleEn}
-            onChange={(e) => setTitleEn(e.target.value)}
-            placeholder="Title (English)"
-            className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
-          <button
-            type="button"
-            disabled={!assetId || !titleTh.trim() || createMut.isPending}
-            onClick={() => createMut.mutate()}
-            className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:opacity-50"
-          >
+          <input aria-label="หัวข้อภาษาอังกฤษ" value={titleEn} onChange={(e) => setTitleEn(e.target.value)} placeholder="Title (English)" className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <button type="button" disabled={!assetId || !titleTh.trim() || createMut.isPending} onClick={() => createMut.mutate()} className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">
             สร้างประกาศและส่งอนุมัติ
           </button>
         </div>
@@ -188,34 +135,27 @@ export function ListingsView() {
                 <td className="px-4 py-3">{Number(item.price).toLocaleString()} บาท</td>
                 <td className="px-4 py-3">{STATUS_LABELS[item.status]}</td>
                 <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button type="button" onClick={() => setEditingListing(item)} className="rounded border border-brand/40 bg-lagoon-soft/50 px-2.5 py-1 text-xs font-medium text-brand hover:bg-lagoon-soft">
+                      แก้ไข
+                    </button>
                     {canApprove && item.status !== "PUBLISHED" && (
-                      <button
-                        type="button"
-                        onClick={() => actionMut.mutate({ id: item.id, action: "approve" })}
-                        className="rounded bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white"
-                      >
+                      <button type="button" onClick={() => actionMut.mutate({ id: item.id, action: "approve" })} className="rounded bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white">
                         อนุมัติเผยแพร่
                       </button>
                     )}
                     {item.status === "PUBLISHED" && (
                       <>
-                        <a
-                          href={`${PORTAL_URL}/th/listings/${item.slug}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="rounded bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 hover:bg-teal-100"
-                        >
+                        <a href={`${PORTAL_URL}/th/listings/${item.slug}`} target="_blank" rel="noreferrer" className="rounded bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 hover:bg-teal-100">
                           ดูโพสต์บนเว็บ ↗
                         </a>
-                        <button
-                          type="button"
-                          onClick={() => actionMut.mutate({ id: item.id, action: "close" })}
-                          className="rounded bg-slate-200 px-2.5 py-1 text-xs font-medium text-slate-800"
-                        >
+                        <button type="button" onClick={() => actionMut.mutate({ id: item.id, action: "close" })} className="rounded bg-slate-200 px-2.5 py-1 text-xs font-medium text-slate-800">
                           ปิดประกาศ
                         </button>
                       </>
+                    )}
+                    {archived === "false" && (
+                      <ConfirmArchiveDialog itemLabel={`${item.asset.code} ${item.titleTh}`} buttonLabel="ลบ/เก็บเข้ากรุ" onConfirm={async () => { await api(`/api/v1/listings/${item.id}/archive`, { method: "POST" }); refresh(); }} />
                     )}
                   </div>
                 </td>
@@ -224,6 +164,8 @@ export function ListingsView() {
           </tbody>
         </table>
       </div>
+
+      {editingListing && <ListingEditModal initial={editingListing} onClose={() => setEditingListing(null)} onSaved={refresh} />}
     </div>
   );
 }

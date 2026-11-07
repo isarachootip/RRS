@@ -1,7 +1,9 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { AssetFormModal } from "@/components/assets/asset-form-modal";
 import {
   type AssetAgentItem,
   type AssetMediaItem,
@@ -17,11 +19,15 @@ interface AssetDetail {
   id: string;
   code: string;
   category: string;
+  ownershipType?: "OWNER" | "AGENT";
   unitNo: string | null;
+  areaSqm?: string | number | null;
   status: string;
   rentPrice: string | null;
   minRentPrice: string | null;
+  salePrice?: string | null;
   internalNote: string | null;
+  attributes?: Record<string, unknown> | null;
   media?: AssetMediaItem[];
   agents?: AssetAgentItem[];
   agreements?: ListingAgreementItem[];
@@ -29,8 +35,10 @@ interface AssetDetail {
 
 export default function AssetDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = params?.id ?? "";
   const queryClient = useQueryClient();
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data, error, isLoading } = useQuery({
     queryKey: ["asset", id],
@@ -55,6 +63,8 @@ export default function AssetDetailPage() {
     );
   }
 
+  const refresh = () => void queryClient.invalidateQueries({ queryKey: ["asset", id] });
+
   async function toggleUnavailable() {
     if (!data) return;
     const nextStatus = data.status === "UNAVAILABLE" ? "AVAILABLE" : "UNAVAILABLE";
@@ -62,7 +72,7 @@ export default function AssetDetailPage() {
       method: "PATCH",
       body: JSON.stringify({ status: nextStatus }),
     });
-    await queryClient.invalidateQueries({ queryKey: ["asset", id] });
+    refresh();
   }
 
   return (
@@ -76,10 +86,18 @@ export default function AssetDetailPage() {
           <p className="text-sm text-ink-muted">
             ค่าเช่า: {data.rentPrice ?? "-"} บาท/เดือน
             {data.minRentPrice ? ` (ราคาต่ำสุด: ${data.minRentPrice})` : ""}
+            {data.salePrice ? ` · ราคาขาย: ${data.salePrice} บาท` : ""}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+          >
+            แก้ไขทรัพย์สิน
+          </button>
           {(data.status === "AVAILABLE" || data.status === "UNAVAILABLE") && (
             <button
               type="button"
@@ -93,7 +111,7 @@ export default function AssetDetailPage() {
             itemLabel={data.code}
             onConfirm={async () => {
               await api(`/api/v1/assets/${id}/archive`, { method: "POST" });
-              await queryClient.invalidateQueries({ queryKey: ["asset", id] });
+              router.push("/assets");
             }}
           />
         </div>
@@ -107,6 +125,17 @@ export default function AssetDetailPage() {
       />
 
       <Timeline entityType="asset" entityId={data.id} />
+
+      {editOpen && (
+        <AssetFormModal
+          initial={data}
+          onClose={() => setEditOpen(false)}
+          onSaved={() => {
+            setEditOpen(false);
+            refresh();
+          }}
+        />
+      )}
     </div>
   );
 }

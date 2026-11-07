@@ -5,10 +5,11 @@ import { t } from "@/i18n/th";
 
 interface ConfirmArchiveDialogProps {
   itemLabel: string;
+  buttonLabel?: string;
   onConfirm: () => Promise<void> | void;
 }
 
-export function ConfirmArchiveDialog({ itemLabel, onConfirm }: ConfirmArchiveDialogProps) {
+export function ConfirmArchiveDialog({ itemLabel, buttonLabel, onConfirm }: ConfirmArchiveDialogProps) {
   const [step, setStep] = useState<0 | 1 | 2>(0);
   const [confirmText, setConfirmText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,9 +36,9 @@ export function ConfirmArchiveDialog({ itemLabel, onConfirm }: ConfirmArchiveDia
       <button
         type="button"
         onClick={() => setStep(1)}
-        className="rounded-md border border-danger px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger/10"
+        className="rounded-md border border-danger px-2.5 py-1 text-xs font-medium text-danger hover:bg-danger/10"
       >
-        {t("archive.button")}
+        {buttonLabel ?? t("archive.button")}
       </button>
 
       {step > 0 && (

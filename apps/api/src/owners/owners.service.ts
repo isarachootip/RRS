@@ -9,6 +9,7 @@ export interface ListOwnersParams {
   search?: string;
   status?: OwnerStatus;
   agentId?: string;
+  archived?: "true" | "false";
   page?: number;
   pageSize?: number;
   sortBy?: "createdAt" | "code" | "fullName";
@@ -76,7 +77,9 @@ export class OwnersService {
   }
 
   async list(user: AuthUser, params: ListOwnersParams) {
-    const scopedWhere = this.dataScope.where(user, "owners", "owner.read") as Prisma.OwnerWhereInput;
+    const scopedWhere = this.dataScope.where(user, "owners", "owner.read", {
+      archived: params.archived === "true",
+    }) as Prisma.OwnerWhereInput;
     const page = Math.max(1, params.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 20));
     const search = params.search?.trim();

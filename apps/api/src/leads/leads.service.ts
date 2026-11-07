@@ -70,10 +70,11 @@ export class LeadsService {
   }
 
   async list(user: AuthUser, params: ListLeadsParams) {
+    const isArchived = params.archived === "true";
     const baseWhere: Prisma.LeadWhereInput =
       params.includeDirectory === "true"
-        ? { archivedAt: null }
-        : (this.dataScope.where(user, "leads", "lead.read") as Prisma.LeadWhereInput);
+        ? { archivedAt: isArchived ? { not: null } : null }
+        : (this.dataScope.where(user, "leads", "lead.read", { archived: isArchived }) as Prisma.LeadWhereInput);
     const page = Math.max(1, params.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 50));
     const q = params.search?.trim();

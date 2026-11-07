@@ -48,6 +48,7 @@ const ListLeadsQuerySchema = z.object({
   intent: LeadIntentEnum.optional(),
   ownerAgentId: z.string().uuid().optional(),
   includeDirectory: z.string().optional(),
+  archived: z.enum(["true", "false"]).optional(),
   page: z.coerce.number().int().positive().optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
   sortBy: z.enum(["createdAt", "code", "fullName", "nextFollowUpAt"]).optional(),

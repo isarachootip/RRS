@@ -88,4 +88,27 @@ describe("DataScopeService", () => {
     };
     expect(() => svc.where(user, "leads")).toThrow(ForbiddenException);
   });
+
+  it("เมื่อระบุ { archived: true } จะคืนเงื่อนไข archivedAt: { not: null } ตาม scope", () => {
+    const admin: AuthUser = {
+      id: "u-admin",
+      email: "a@test.local",
+      roles: ["ADMIN"],
+      teamId: null,
+      permissions: { "lead.read": "ALL" },
+    };
+    expect(svc.where(admin, "leads", undefined, { archived: true })).toEqual({
+      archivedAt: { not: null },
+    });
+
+    const agent: AuthUser = {
+      id: "u-agent",
+      email: "ag@test.local",
+      roles: ["AGENT"],
+      teamId: "team-1",
+      permissions: { "lead.read": "OWN" },
+    };
+    const agentWhere = svc.where(agent, "leads", undefined, { archived: true });
+    expect(agentWhere).toHaveProperty("archivedAt", { not: null });
+  });
 });

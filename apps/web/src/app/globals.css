@@ -5,12 +5,17 @@
   --font-sans: "IBM Plex Sans Thai", "Noto Sans Thai", system-ui, sans-serif;
   --color-paper: #f6f7f9;
   --color-surface: #ffffff;
+  --color-surface-subtle: #eef1f5;
   --color-ink: #1c2733;
   --color-ink-muted: #5b6878;
   --color-line: #dde2e8;
+  --color-brand: #0f5e5c;
   --color-lagoon: #0f5e5c;
   --color-lagoon-deep: #0a4442;
   --color-lagoon-soft: #d9ecea;
+  --color-danger: #c93b3b;
+  --color-warning: #b5761a;
+  --color-success: #2f7d4f;
   --color-status-available: #2f7d4f;
   --color-status-booked: #b5761a;
   --color-status-contracted: #2b5fa8;

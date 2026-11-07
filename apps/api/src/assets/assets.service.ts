@@ -36,7 +36,9 @@ export class AssetsService {
   }
 
   async list(user: AuthUser, params: ListAssetsParams) {
-    const scopedWhere = this.dataScope.where(user, "assets", "asset.read") as Prisma.AssetWhereInput;
+    const scopedWhere = this.dataScope.where(user, "assets", "asset.read", {
+      archived: params.archived === "true",
+    }) as Prisma.AssetWhereInput;
     const page = Math.max(1, params.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 20));
     const where = buildAssetListWhere(scopedWhere, params);

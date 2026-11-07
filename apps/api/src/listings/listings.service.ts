@@ -31,8 +31,9 @@ export class ListingsService {
     const page = Math.max(1, query.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 20));
     const q = query.search?.trim();
+    const isArchived = query.archived === "true";
     const where: Prisma.ListingWhereInput = {
-      archivedAt: null,
+      archivedAt: isArchived ? { not: null } : null,
       asset: assetScope,
       ...(query.status ? { status: query.status } : {}),
       ...(query.type ? { type: query.type } : {}),
