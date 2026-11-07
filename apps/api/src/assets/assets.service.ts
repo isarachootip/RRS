@@ -13,6 +13,7 @@ import {
   buildAssetListWhere,
   buildAssetUpdateData,
   toDec,
+  toDecCoord,
 } from "./assets.types";
 
 @Injectable()
@@ -115,6 +116,8 @@ export class AssetsService {
         address: input.address ?? null,
         district: input.district ?? null,
         province: input.province ?? null,
+        latitude: toDecCoord(input.latitude) ?? null,
+        longitude: toDecCoord(input.longitude) ?? null,
         areaSqm: toDec(input.areaSqm) ?? null,
         roomType: input.roomType ?? null,
         bedrooms: input.bedrooms ?? null,

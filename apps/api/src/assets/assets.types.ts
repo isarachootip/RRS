@@ -26,6 +26,8 @@ export interface UpsertAssetInput {
   address?: string | null;
   district?: string | null;
   province?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   areaSqm?: number | null;
   roomType?: RoomType | null;
   bedrooms?: number | null;
@@ -59,6 +61,9 @@ export const assetDetailInclude = {
 
 export const toDec = (n: number | null | undefined) =>
   n === undefined ? undefined : n === null ? null : new Prisma.Decimal(n.toFixed(2));
+
+export const toDecCoord = (n: number | null | undefined) =>
+  n === undefined ? undefined : n === null ? null : new Prisma.Decimal(n.toFixed(6));
 
 export function buildAssetListWhere(
   scopedWhere: Prisma.AssetWhereInput,
@@ -106,6 +111,8 @@ export function buildAssetUpdateData(
   if (input.address !== undefined) out.address = input.address;
   if (input.district !== undefined) out.district = input.district;
   if (input.province !== undefined) out.province = input.province;
+  if (input.latitude !== undefined) out.latitude = toDecCoord(input.latitude);
+  if (input.longitude !== undefined) out.longitude = toDecCoord(input.longitude);
   if (input.areaSqm !== undefined) out.areaSqm = toDec(input.areaSqm);
   if (input.roomType !== undefined) out.roomType = input.roomType;
   if (input.bedrooms !== undefined) out.bedrooms = input.bedrooms;

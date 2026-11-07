@@ -7,14 +7,16 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from "@nestjs/swagger";
+import type { Response } from "express";
 import { z } from "zod";
 import type { AuthUser } from "../auth/auth.types";
-import { CurrentUser } from "../auth/public.decorator";
+import { CurrentUser, Public } from "../auth/public.decorator";
 import { ZodPipe } from "../common/zod.pipe";
 import { FilesService, MAX_FILE_SIZE_BYTES } from "./files.service";
 
@@ -80,6 +82,16 @@ export class FilesController {
   @ApiOperation({ summary: "ขอ signed URL สำหรับดาวน์โหลด/เปิดดูไฟล์ (หมดอายุใน 5 นาที)" })
   getSignedUrl(@Param("id") id: string) {
     return this.files.getSignedUrls(id);
+  }
+
+  @Public()
+  @Get(":id/raw")
+  @ApiOperation({ summary: "เปิดดูหรือดาวน์โหลดไฟล์โดยตรงจากเซิร์ฟเวอร์" })
+  async getRaw(@Param("id") id: string, @Res() res: Response) {
+    const { file, buffer } = await this.files.getRawFile(id);
+    res.setHeader("Content-Type", file.mimeType);
+    res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(file.originalName)}"`);
+    res.send(buffer);
   }
 
   @Post(":id/archive")

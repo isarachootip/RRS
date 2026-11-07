@@ -16,6 +16,7 @@ export interface ListLeadsParams {
 export interface UpsertLeadInput {
   intent?: LeadIntent;
   fullName?: string;
+  identityNo?: string | null;
   phone?: string | null;
   lineId?: string | null;
   email?: string | null;
@@ -98,6 +99,7 @@ export function buildLeadCreateData(
     code,
     intent: input.intent ?? "RENT",
     fullName: input.fullName,
+    identityNo: input.identityNo ?? null,
     phone,
     lineId: input.lineId ?? null,
     email: input.email ?? null,
@@ -134,6 +136,7 @@ export function buildLeadUpdateData(
   return {
     ...(input.intent !== undefined ? { intent: input.intent } : {}),
     ...(input.fullName !== undefined ? { fullName: input.fullName } : {}),
+    ...(input.identityNo !== undefined ? { identityNo: input.identityNo } : {}),
     ...(phone !== undefined ? { phone } : {}),
     ...(input.lineId !== undefined ? { lineId: input.lineId } : {}),
     ...(input.email !== undefined ? { email: input.email } : {}),

@@ -22,12 +22,13 @@ export const getAccessToken = () => accessToken;
 
 async function raw<T>(path: string, init?: RequestInit, withToken = true): Promise<T> {
   let res: Response;
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
   try {
     res = await fetch(`${API_URL}${path}`, {
       credentials: "include",
       ...init,
       headers: {
-        "content-type": "application/json",
+        ...(isFormData ? {} : { "content-type": "application/json" }),
         ...(withToken && accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
         ...init?.headers,
       },
@@ -99,3 +100,25 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 /** เรียก endpoint ที่ไม่ต้องล็อกอิน */
 export const publicApi = <T>(path: string, body: unknown) =>
   raw<T>(path, { method: "POST", body: JSON.stringify(body) }, false);
+
+export interface UploadedFileRecord {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  entityType: string | null;
+  entityId: string | null;
+}
+
+/** อัปโหลดไฟล์สแกนเอกสารหรือรูปภาพไปยัง /api/v1/files */
+export async function uploadEntityFile(
+  file: File,
+  entityType?: string,
+  entityId?: string,
+): Promise<UploadedFileRecord> {
+  const fd = new FormData();
+  fd.append("file", file);
+  if (entityType) fd.append("entityType", entityType);
+  if (entityId) fd.append("entityId", entityId);
+  return api<UploadedFileRecord>("/api/v1/files", { method: "POST", body: fd });
+}

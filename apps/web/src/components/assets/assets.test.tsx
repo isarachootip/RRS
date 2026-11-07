@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OwnerFormModal } from "../owners/owner-form-modal";
 import { AssetFormModal } from "./asset-form-modal";
+import { parseGoogleMapsCoords } from "./asset-location-media-fields";
 import { BulkApartmentModal } from "./bulk-apartment-modal";
 
 const mockFetch = vi.fn();
@@ -131,5 +132,20 @@ describe("P06 · AssetFormModal และ BulkApartmentModal", () => {
       expect.stringContaining("/api/v1/assets/asset-1"),
       expect.objectContaining({ method: "PATCH" }),
     );
+  });
+
+  it("parseGoogleMapsCoords แยกพิกัด Latitude/Longitude จากลิงก์ Google Maps ได้ถูกต้อง", () => {
+    expect(parseGoogleMapsCoords("https://www.google.com/maps/place/Bangkok/@13.7563,100.5018,17z")).toEqual({
+      lat: "13.7563",
+      lng: "100.5018",
+    });
+    expect(parseGoogleMapsCoords("https://maps.google.com/?q=13.7307,100.5691")).toEqual({
+      lat: "13.7307",
+      lng: "100.5691",
+    });
+    expect(parseGoogleMapsCoords("13.7450, 100.5340")).toEqual({
+      lat: "13.745",
+      lng: "100.534",
+    });
   });
 });

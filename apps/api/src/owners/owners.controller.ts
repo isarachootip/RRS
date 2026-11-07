@@ -39,6 +39,7 @@ const DuplicateQuerySchema = z.object({
 
 const CreateOwnerSchema = z.object({
   fullName: z.string().trim().min(1).max(150),
+  identityNo: z.string().trim().max(60).nullish(),
   isCompany: z.boolean().optional(),
   phone: z.string().max(40).nullish(),
   lineId: z.string().max(80).nullish(),

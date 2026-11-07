@@ -129,6 +129,7 @@ export function redactLeadInList(user: AuthUser, lead: LeadWithRelations) {
     statusReason: isAccessible ? lead.statusReason : null,
     source: lead.source,
     fullName: isAccessible ? lead.fullName : abbreviateName(lead.fullName),
+    identityNo: isAccessible ? ((lead.identityNo as string | null) ?? null) : null,
     phone: maskPhone(lead.phone),
     budgetMin: formatMoney(lead.budgetMin),
     budgetMax: formatMoney(lead.budgetMax),

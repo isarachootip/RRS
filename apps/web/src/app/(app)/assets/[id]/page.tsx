@@ -20,7 +20,16 @@ interface AssetDetail {
   code: string;
   category: string;
   ownershipType?: "OWNER" | "AGENT";
+  projectId?: string | null;
+  project?: { id: string; name: string } | null;
   unitNo: string | null;
+  tower?: string | null;
+  floor?: number | null;
+  address?: string | null;
+  district?: string | null;
+  province?: string | null;
+  latitude?: string | number | null;
+  longitude?: string | number | null;
   areaSqm?: string | number | null;
   status: string;
   rentPrice: string | null;
@@ -87,6 +96,22 @@ export default function AssetDetailPage() {
             ค่าเช่า: {data.rentPrice ?? "-"} บาท/เดือน
             {data.minRentPrice ? ` (ราคาต่ำสุด: ${data.minRentPrice})` : ""}
             {data.salePrice ? ` · ราคาขาย: ${data.salePrice} บาท` : ""}
+          </p>
+          <p className="text-xs text-ink-muted">
+            สถานที่ตั้ง: {[data.project?.name, data.tower ? `ตึก ${data.tower}` : null, data.floor != null ? `ชั้น ${data.floor}` : null, data.address, data.district, data.province].filter(Boolean).join(" · ") || "-"}
+            {data.latitude != null && data.longitude != null && (
+              <>
+                {" · "}
+                <a
+                  href={`https://www.google.com/maps?q=${encodeURIComponent(`${data.latitude},${data.longitude}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-brand hover:underline"
+                >
+                  📍 พิกัด ({data.latitude}, {data.longitude}) เปิด Google Maps ↗
+                </a>
+              </>
+            )}
           </p>
         </div>
 

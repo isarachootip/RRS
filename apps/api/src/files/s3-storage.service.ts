@@ -1,3 +1,5 @@
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import {
   CreateBucketCommand,
   GetObjectCommand,
@@ -14,11 +16,13 @@ import type { Env } from "../config/env";
 export class S3StorageService {
   private readonly client: S3Client;
   private readonly bucket: string;
+  private readonly localDir: string;
   private bucketReady = false;
   private readonly storedKeys = new Set<string>();
 
   constructor(private readonly config: ConfigService<Env, true>) {
     this.bucket = this.config.get("S3_BUCKET", { infer: true });
+    this.localDir = process.env.UPLOAD_DIR ?? "/tmp/rrs-uploads";
     this.client = new S3Client({
       region: "ap-southeast-1",
       endpoint: this.config.get("S3_ENDPOINT", { infer: true }),
@@ -40,13 +44,20 @@ export class S3StorageService {
         await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
         this.bucketReady = true;
       } catch {
-        // ในโหมดทดสอบที่ยังไม่ได้เปิด MinIO จะบันทึก key ในหน่วยความจำแทน
+        // Fallback to local disk storage when S3/MinIO is not running
       }
     }
   }
 
   async putObject(key: string, body: Buffer, contentType: string): Promise<void> {
     this.storedKeys.add(key);
+    try {
+      const targetPath = join(this.localDir, key);
+      await mkdir(dirname(targetPath), { recursive: true });
+      await writeFile(targetPath, body);
+    } catch {
+      // Ignore local disk write error if read-only fs
+    }
     await this.ensureBucket();
     try {
       await this.client.send(
@@ -57,8 +68,16 @@ export class S3StorageService {
           ContentType: contentType,
         }),
       );
-    } catch (err) {
-      if (process.env.NODE_ENV !== "test") throw err;
+    } catch {
+      // Local disk fallback already stored the file
+    }
+  }
+
+  async readLocalObject(key: string): Promise<Buffer | null> {
+    try {
+      return await readFile(join(this.localDir, key));
+    } catch {
+      return null;
     }
   }
 

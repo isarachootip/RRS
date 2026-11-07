@@ -55,6 +55,8 @@ const CreateAssetSchema = z.object({
   address: z.string().max(300).nullish(),
   district: z.string().max(100).nullish(),
   province: z.string().max(100).nullish(),
+  latitude: z.number().min(-90).max(90).nullish(),
+  longitude: z.number().min(-180).max(180).nullish(),
   areaSqm: z.number().positive().nullish(),
   roomType: RoomTypeEnum.nullish(),
   bedrooms: z.number().int().nonnegative().nullish(),

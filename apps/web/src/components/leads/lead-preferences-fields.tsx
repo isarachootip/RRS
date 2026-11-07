@@ -6,6 +6,7 @@ import { t, type MessageKey } from "@/i18n/th";
 export interface LeadFormState {
   intent: "RENT" | "BUY";
   fullName: string;
+  identityNo: string;
   phone: string;
   lineId: string;
   email: string;

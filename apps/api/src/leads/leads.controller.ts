@@ -65,6 +65,7 @@ const DuplicateQuerySchema = z.object({
 const CreateLeadSchema = z.object({
   intent: LeadIntentEnum.optional(),
   fullName: z.string().trim().min(1).max(150),
+  identityNo: z.string().trim().max(60).nullish(),
   phone: z.string().max(40).nullish(),
   lineId: z.string().max(80).nullish(),
   email: z.string().email().max(150).nullish().or(z.literal("")),

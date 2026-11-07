@@ -6,27 +6,14 @@ import { PrismaService } from "../prisma/prisma.service";
 import { DataScopeService } from "../rbac/data-scope.service";
 
 export interface ListOwnersParams {
-  search?: string;
-  status?: OwnerStatus;
-  agentId?: string;
-  archived?: "true" | "false";
-  page?: number;
-  pageSize?: number;
-  sortBy?: "createdAt" | "code" | "fullName";
-  sortDir?: "asc" | "desc";
+  search?: string; status?: OwnerStatus; agentId?: string; archived?: "true" | "false";
+  page?: number; pageSize?: number; sortBy?: "createdAt" | "code" | "fullName"; sortDir?: "asc" | "desc";
 }
 
 export interface UpsertOwnerInput {
-  fullName?: string;
-  isCompany?: boolean;
-  phone?: string | null;
-  lineId?: string | null;
-  email?: string | null;
-  sourceChannel?: LeadSource | null;
-  firstContactAt?: string | null;
-  agentId?: string | null;
-  status?: OwnerStatus;
-  note?: string | null;
+  fullName?: string; identityNo?: string | null; isCompany?: boolean; phone?: string | null;
+  lineId?: string | null; email?: string | null; sourceChannel?: LeadSource | null;
+  firstContactAt?: string | null; agentId?: string | null; status?: OwnerStatus; note?: string | null;
 }
 
 @Injectable()
@@ -66,12 +53,8 @@ export class OwnersService {
     });
     return {
       items: owners.map((o) => ({
-        id: o.id,
-        code: o.code,
-        fullName: o.fullName,
-        status: o.status,
-        agentId: o.agentId,
-        agentName: o.agent?.fullName ?? null,
+        id: o.id, code: o.code, fullName: o.fullName, status: o.status,
+        agentId: o.agentId, agentName: o.agent?.fullName ?? null,
       })),
     };
   }
@@ -90,18 +73,15 @@ export class OwnersService {
         scopedWhere,
         ...(params.status ? [{ status: params.status }] : []),
         ...(params.agentId ? [{ agentId: params.agentId }] : []),
-        ...(search
-          ? [
-              {
-                OR: [
-                  { fullName: { contains: search, mode: "insensitive" as const } },
-                  { code: { contains: search, mode: "insensitive" as const } },
-                  { phone: { contains: normPhone ?? search } },
-                  { lineId: { contains: search, mode: "insensitive" as const } },
-                ],
-              },
-            ]
-          : []),
+        ...(search ? [{
+          OR: [
+            { fullName: { contains: search, mode: "insensitive" as const } },
+            { code: { contains: search, mode: "insensitive" as const } },
+            { identityNo: { contains: search, mode: "insensitive" as const } },
+            { phone: { contains: normPhone ?? search } },
+            { lineId: { contains: search, mode: "insensitive" as const } },
+          ],
+        }] : []),
       ],
     };
 
@@ -127,6 +107,7 @@ export class OwnersService {
         const canContact = this.canViewContact(user, o);
         return {
           ...o,
+          identityNo: canContact ? o.identityNo : null,
           phone: canContact ? maskPhone(o.phone) : null,
           lineId: canContact ? o.lineId : null,
           email: canContact ? o.email : null,
@@ -149,6 +130,7 @@ export class OwnersService {
     const canContact = this.canViewContact(user, owner);
     return {
       ...owner,
+      identityNo: canContact ? owner.identityNo : null,
       phone: canContact ? owner.phone : null,
       lineId: canContact ? owner.lineId : null,
       email: canContact ? owner.email : null,
@@ -161,6 +143,7 @@ export class OwnersService {
       data: {
         code,
         fullName: input.fullName,
+        identityNo: input.identityNo ?? null,
         isCompany: input.isCompany ?? false,
         phone: this.parseNormalizedPhone(input.phone) ?? null,
         lineId: input.lineId ?? null,
@@ -186,6 +169,7 @@ export class OwnersService {
       where: { id },
       data: {
         ...(input.fullName !== undefined ? { fullName: input.fullName } : {}),
+        ...(input.identityNo !== undefined ? { identityNo: input.identityNo } : {}),
         ...(phone !== undefined ? { phone } : {}),
         ...(input.lineId !== undefined ? { lineId: input.lineId } : {}),
         ...(input.email !== undefined ? { email: input.email } : {}),

@@ -461,6 +461,8 @@ model Owner {
   /// D02 (สมมติฐาน): ระเบียน "บริษัท" 1 รายการ เป็นเจ้าของห้องประเภท OWNER
   isCompany      Boolean     @default(false) @map("is_company")
   fullName       String      @map("full_name")
+  /// เลขบัตรประชาชน 13 หลัก หรือหมายเลขพาสปอร์ต
+  identityNo     String?     @map("identity_no")
   /// E.164 ผ่าน normalizePhone() — ใช้ตรวจซ้ำ (ไม่ unique เพราะ SRS ให้เตือน ไม่ห้าม)
   phone          String?
   lineId         String?     @map("line_id")
@@ -710,6 +712,8 @@ model Lead {
   code               String         @unique
   intent             LeadIntent     @default(RENT)
   fullName           String         @map("full_name")
+  /// เลขบัตรประชาชน 13 หลัก หรือหมายเลขพาสปอร์ต
+  identityNo         String?        @map("identity_no")
   phone              String?
   lineId             String?        @map("line_id")
   email              String?

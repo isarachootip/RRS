@@ -1,36 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IdentityDocSection } from "@/components/identity-doc-section";
 import { type LeadFormState, LeadPreferencesFields } from "@/components/leads/lead-preferences-fields";
 import type { LeadItem } from "@/components/leads/leads-kanban";
 import { t } from "@/i18n/th";
-import { api } from "@/lib/api";
+import { api, uploadEntityFile } from "@/lib/api";
 
 export interface DuplicateLeadMatch {
-  id: string;
-  code: string;
-  abbreviatedName?: string;
-  fullName?: string;
-  ownerAgentId: string;
-  ownerAgentName: string;
-  status: string;
+  id: string; code: string; abbreviatedName?: string; fullName?: string;
+  ownerAgentId: string; ownerAgentName: string; status: string;
 }
 
 export interface EditableLead extends Partial<LeadItem> {
-  id?: string;
-  lineId?: string | null;
-  email?: string | null;
-  nationality?: string | null;
-  source?: string | null;
-  preferredProjectId?: string | null;
-  preferredCategory?: string | null;
-  preferredRoomType?: string | null;
-  minAreaSqm?: string | number | null;
-  occupants?: number | null;
-  moveInDate?: string | null;
-  leaseMonths?: number | null;
-  petRequired?: boolean;
-  specialNote?: string | null;
+  id?: string; identityNo?: string | null; lineId?: string | null; email?: string | null;
+  nationality?: string | null; source?: string | null; preferredProjectId?: string | null;
+  preferredCategory?: string | null; preferredRoomType?: string | null; minAreaSqm?: string | number | null;
+  occupants?: number | null; moveInDate?: string | null; leaseMonths?: number | null;
+  petRequired?: boolean; specialNote?: string | null;
 }
 
 const LEAD_SOURCES = [
@@ -44,6 +31,7 @@ function initLeadForm(initial?: EditableLead | null): LeadFormState {
   return {
     intent: (initial?.intent ?? "RENT") as "RENT" | "BUY",
     fullName: initial?.fullName ?? "",
+    identityNo: initial?.identityNo ?? "",
     phone: initial?.phone && !initial.phone.includes("x") ? initial.phone : "",
     lineId: initial?.lineId ?? "", email: initial?.email ?? "", nationality: initial?.nationality ?? "",
     source: initial?.source ?? "FACEBOOK", ownerAgentId: initial?.ownerAgentId ?? "",
@@ -68,6 +56,7 @@ export function LeadFormModal(props: {
 }) {
   const { open, initial, onClose, onSaved, onSavedAndOpen } = props;
   const [form, setForm] = useState<LeadFormState>(() => initLeadForm(initial));
+  const [pendingScan, setPendingScan] = useState<File | null>(null);
   const [agents, setAgents] = useState<Array<{ id: string; fullName: string }>>([]);
   const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
   const [duplicates, setDuplicates] = useState<DuplicateLeadMatch[]>([]);
@@ -79,6 +68,7 @@ export function LeadFormModal(props: {
   useEffect(() => {
     if (!open) return;
     setForm(initLeadForm(initial));
+    setPendingScan(null);
     setDuplicates([]);
     setConfirmedDuplicate(false);
     setError(null);
@@ -119,7 +109,7 @@ export function LeadFormModal(props: {
         if (found.length > 0) { setDuplicates(found); setConfirmedDuplicate(true); return; }
       }
       const payload = {
-        intent: form.intent, fullName: form.fullName.trim(),
+        intent: form.intent, fullName: form.fullName.trim(), identityNo: form.identityNo.trim() || null,
         phone: form.phone.trim() ? form.phone.trim() : initial?.id ? undefined : null,
         lineId: form.lineId.trim() || null, email: form.email.trim() || null, nationality: form.nationality.trim() || null,
         source: form.source.toUpperCase(), ownerAgentId: form.ownerAgentId || undefined,
@@ -133,6 +123,9 @@ export function LeadFormModal(props: {
       const saved = initial?.id
         ? await api<{ id?: string }>(`/api/v1/leads/${initial.id}`, { method: "PATCH", body: JSON.stringify(payload) })
         : await api<{ id?: string }>("/api/v1/leads", { method: "POST", body: JSON.stringify(payload) });
+      if (!initial?.id && saved?.id && pendingScan) {
+        await uploadEntityFile(pendingScan, "lead_id_doc", saved.id).catch(() => {});
+      }
       onSaved();
       onClose();
       if (openDetailAfter && saved?.id && onSavedAndOpen) onSavedAndOpen(saved.id);
@@ -168,12 +161,13 @@ export function LeadFormModal(props: {
           </div>
         )}
         <div className="space-y-3 rounded-lg border border-line bg-surface p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">ส่วนที่ 1: ข้อมูลติดต่อพื้นฐานและผู้ดูแล</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">ส่วนที่ 1: ข้อมูลติดต่อพื้นฐาน เอกสารยืนยันตัวตน และผู้ดูแล</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="text-xs font-medium text-ink">ความต้องการ<select aria-label="ความต้องการ" value={form.intent} onChange={(e) => patchForm({ intent: e.target.value as "RENT" | "BUY" })} className={inputCls}><option value="RENT">{t("leads.intent.RENT")}</option><option value="BUY">{t("leads.intent.BUY")}</option></select></label>
             <label className="text-xs font-medium text-ink">ช่องทางติดต่อ<select aria-label="ช่องทางติดต่อ" value={form.source} onChange={(e) => patchForm({ source: e.target.value })} className={inputCls}>{LEAD_SOURCES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select></label>
             <label className="text-xs font-medium text-ink">ชื่อ-นามสกุล *<input type="text" required aria-label="ชื่อ-นามสกุล" value={form.fullName} onChange={(e) => patchForm({ fullName: e.target.value })} className={inputCls} /></label>
             <label className="text-xs font-medium text-ink">เบอร์โทรศัพท์<input type="text" aria-label="เบอร์โทรศัพท์" placeholder="081-234-5678" value={form.phone} onChange={(e) => patchForm({ phone: e.target.value })} className={inputCls} /></label>
+            <IdentityDocSection entityType="lead_id_doc" entityId={initial?.id} identityNo={form.identityNo} onIdentityNoChange={(val) => patchForm({ identityNo: val })} pendingFile={pendingScan} onPendingFileChange={setPendingScan} />
             <label className="text-xs font-medium text-ink">LINE ID<input type="text" aria-label="LINE ID" value={form.lineId} onChange={(e) => patchForm({ lineId: e.target.value })} className={inputCls} /></label>
             <label className="text-xs font-medium text-ink">อีเมล<input type="email" aria-label="อีเมล" value={form.email} onChange={(e) => patchForm({ email: e.target.value })} className={inputCls} /></label>
             <label className="text-xs font-medium text-ink">สัญชาติ<input type="text" aria-label="สัญชาติ" placeholder="เช่น ไทย, อังกฤษ, ญี่ปุ่น" value={form.nationality} onChange={(e) => patchForm({ nationality: e.target.value })} className={inputCls} /></label>

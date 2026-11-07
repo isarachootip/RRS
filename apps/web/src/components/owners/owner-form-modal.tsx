@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { IdentityDocSection } from "@/components/identity-doc-section";
 import { t } from "@/i18n/th";
-import { api } from "@/lib/api";
+import { api, uploadEntityFile } from "@/lib/api";
 
 export interface OwnerRow {
   id: string;
   code: string;
   fullName: string;
+  identityNo?: string | null;
   phone: string | null;
   lineId: string | null;
   email: string | null;
@@ -33,7 +35,9 @@ interface OwnerFormModalProps {
 
 export function OwnerFormModal({ initial, onClose, onSaved }: OwnerFormModalProps) {
   const [fullName, setFullName] = useState(initial?.fullName ?? "");
-  const [phone, setPhone] = useState(initial?.phone ?? "");
+  const [identityNo, setIdentityNo] = useState(initial?.identityNo ?? "");
+  const [pendingScan, setPendingScan] = useState<File | null>(null);
+  const [phone, setPhone] = useState(initial?.phone && !initial.phone.includes("x") ? initial.phone : "");
   const [lineId, setLineId] = useState(initial?.lineId ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [status, setStatus] = useState<OwnerRow["status"]>(initial?.status ?? "NEW");
@@ -65,7 +69,8 @@ export function OwnerFormModal({ initial, onClose, onSaved }: OwnerFormModalProp
 
       const payload = {
         fullName: fullName.trim(),
-        phone: phone.trim() || null,
+        identityNo: identityNo.trim() || null,
+        phone: phone.trim() ? phone.trim() : initial?.id ? undefined : null,
         lineId: lineId.trim() || null,
         email: email.trim() || null,
         status,
@@ -75,7 +80,10 @@ export function OwnerFormModal({ initial, onClose, onSaved }: OwnerFormModalProp
       if (initial?.id) {
         await api(`/api/v1/owners/${initial.id}`, { method: "PATCH", body: JSON.stringify(payload) });
       } else {
-        await api("/api/v1/owners", { method: "POST", body: JSON.stringify(payload) });
+        const created = await api<{ id?: string }>("/api/v1/owners", { method: "POST", body: JSON.stringify(payload) });
+        if (created?.id && pendingScan) {
+          await uploadEntityFile(pendingScan, "owner_id_doc", created.id).catch(() => {});
+        }
       }
       onSaved();
     } catch (err) {
@@ -86,14 +94,10 @@ export function OwnerFormModal({ initial, onClose, onSaved }: OwnerFormModalProp
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-    >
+    <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-lg space-y-4 rounded-lg border border-line bg-surface p-6 shadow-lg"
+        className="max-h-[90vh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-lg border border-line bg-surface p-6 shadow-lg"
       >
         <h2 className="text-lg font-semibold text-ink">
           {initial ? `แก้ไขเจ้าของทรัพย์ (${initial.code})` : t("owners.add")}
@@ -122,15 +126,20 @@ export function OwnerFormModal({ initial, onClose, onSaved }: OwnerFormModalProp
               className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
             />
           </label>
+          <IdentityDocSection
+            entityType="owner_id_doc"
+            entityId={initial?.id}
+            identityNo={identityNo}
+            onIdentityNoChange={setIdentityNo}
+            pendingFile={pendingScan}
+            onPendingFileChange={setPendingScan}
+          />
           <label className="space-y-1 text-xs font-medium text-ink">
             <span>เบอร์โทรศัพท์</span>
             <input
               aria-label="เบอร์โทรศัพท์เจ้าของทรัพย์"
               value={phone}
-              onChange={(e) => {
-                setPhone(e.target.value);
-                setConfirmedDup(false);
-              }}
+              onChange={(e) => { setPhone(e.target.value); setConfirmedDup(false); }}
               placeholder="081-234-5678"
               className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
             />
@@ -140,10 +149,7 @@ export function OwnerFormModal({ initial, onClose, onSaved }: OwnerFormModalProp
             <input
               aria-label="LINE ID เจ้าของทรัพย์"
               value={lineId}
-              onChange={(e) => {
-                setLineId(e.target.value);
-                setConfirmedDup(false);
-              }}
+              onChange={(e) => { setLineId(e.target.value); setConfirmedDup(false); }}
               className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
             />
           </label>
@@ -153,10 +159,7 @@ export function OwnerFormModal({ initial, onClose, onSaved }: OwnerFormModalProp
               type="email"
               aria-label="อีเมลเจ้าของทรัพย์"
               value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setConfirmedDup(false);
-              }}
+              onChange={(e) => { setEmail(e.target.value); setConfirmedDup(false); }}
               className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
             />
           </label>
@@ -176,23 +179,12 @@ export function OwnerFormModal({ initial, onClose, onSaved }: OwnerFormModalProp
           </label>
           <label className="space-y-1 text-xs font-medium text-ink sm:col-span-2">
             <span>หมายเหตุ</span>
-            <textarea
-              rows={2}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm"
-            />
+            <textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} className="w-full rounded-md border border-line bg-surface px-3 py-2 text-sm" />
           </label>
         </div>
         <div className="flex justify-end gap-2 pt-2">
-          <button type="button" onClick={onClose} className="rounded-md border border-line px-4 py-2 text-xs text-ink">
-            {t("archive.cancel")}
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-md bg-brand px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
-          >
+          <button type="button" onClick={onClose} className="rounded-md border border-line px-4 py-2 text-xs text-ink">{t("archive.cancel")}</button>
+          <button type="submit" disabled={saving} className="rounded-md bg-brand px-4 py-2 text-xs font-medium text-white disabled:opacity-50">
             {confirmedDup ? t("owners.dup.confirmSave") : "บันทึกเจ้าของทรัพย์"}
           </button>
         </div>

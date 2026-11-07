@@ -22,6 +22,7 @@ interface LeadDetail {
   code: string;
   intent: "RENT" | "BUY";
   fullName: string;
+  identityNo?: string | null;
   phone: string | null;
   lineId: string | null;
   email: string | null;
@@ -80,7 +81,7 @@ export default function LeadDetailPage() {
             </p>
             <h1 className="text-xl font-semibold text-ink">{data.fullName}</h1>
             <p className="text-sm text-ink-muted">
-              เบอร์โทรศัพท์: {data.phone ?? "-"} · LINE: {data.lineId ?? "-"} · อีเมล: {data.email ?? "-"}
+              เบอร์โทรศัพท์: {data.phone ?? "-"} · เลขบัตร/พาสปอร์ต: {data.identityNo ?? "-"} · LINE: {data.lineId ?? "-"} · อีเมล: {data.email ?? "-"}
             </p>
             <p className="text-xs text-ink-muted">
               สถานะ: {t(`leads.status.${data.status}` as MessageKey) ?? data.status} · ผู้ดูแล:{" "}

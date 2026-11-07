@@ -42,6 +42,8 @@ export INTERNAL_API_URL="${INTERNAL_API_URL:-http://127.0.0.1:${API_PORT}}"
 export JWT_ACCESS_SECRET="${JWT_ACCESS_SECRET:-rrs-production-jwt-access-secret-key-2026-min32chars}"
 export TOTP_ENCRYPTION_KEY="${TOTP_ENCRYPTION_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}"
 export COOKIE_SECURE="${COOKIE_SECURE:-false}"
+export UPLOAD_DIR="${UPLOAD_DIR:-/var/lib/postgresql/data/uploads}"
+mkdir -p "${UPLOAD_DIR}"
 
 # 4. Run Prisma database migrations and idempotent initial seed
 echo "==> [RRS All-in-One] Running database migrations & initial seed..."

@@ -45,6 +45,11 @@ export function OwnersView() {
         header: "ชื่อ-นามสกุล",
         cell: (info) => <span className="font-medium text-ink">{info.getValue()}</span>,
       }),
+      col.accessor((row) => row.identityNo ?? "-", {
+        id: "identityNo",
+        header: "เลขบัตร/พาสปอร์ต",
+        cell: (info) => <span className="font-mono text-xs text-ink-muted">{info.getValue()}</span>,
+      }),
       col.accessor("phone", {
         header: "เบอร์โทร",
         cell: (info) => <span className="text-ink-muted">{info.getValue() ?? "-"}</span>,

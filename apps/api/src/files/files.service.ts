@@ -125,8 +125,21 @@ export class FilesService {
       mimeType: file.mimeType,
       expiresIn: SIGNED_URL_TTL_SECONDS,
       url,
+      rawUrl: `/api/v1/files/${file.id}/raw`,
       variants,
     };
+  }
+
+  async getRawFile(id: string) {
+    const file = await this.prisma.file.findUnique({ where: { id } });
+    if (!file || file.archivedAt) {
+      throw new NotFoundException({ code: "FILE_NOT_FOUND", message: "ไม่พบไฟล์นี้" });
+    }
+    const buffer = await this.s3.readLocalObject(file.storageKey);
+    if (!buffer) {
+      throw new NotFoundException({ code: "FILE_CONTENT_NOT_FOUND", message: "ไม่พบเนื้อหาไฟล์บนเซิร์ฟเวอร์" });
+    }
+    return { file, buffer };
   }
 
   async archive(id: string) {
