@@ -62,12 +62,29 @@ export function ListingCard({ item, locale }: { item: PublicListingItem; locale:
     writeStoredList(COMPARE_STORAGE_KEY, [...current.slice(-3), item]);
   };
 
+  const coverMedia = item.asset.media.find((m) => m.isCover) ?? item.asset.media[0] ?? null;
+
   return (
     <article
       data-testid="listing-card"
-      className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
+      className="flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md"
     >
       <div>
+        {coverMedia && (
+          <Link href={`/${locale}/listings/${item.slug}`} className="relative mb-3 block overflow-hidden rounded-xl border border-slate-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={coverMedia.url}
+              alt={coverMedia.caption ?? title}
+              className="h-44 w-full object-cover transition hover:scale-105"
+            />
+            {item.asset.media.length > 1 && (
+              <span className="absolute right-2 bottom-2 rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">
+                📷 {item.asset.media.length}
+              </span>
+            )}
+          </Link>
+        )}
         <div className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold">
           <span className="rounded-full bg-teal-50 px-2.5 py-1 text-lagoon">
             {item.type === "RENT" ? d.txRent : d.txSale} · {item.asset.category}

@@ -85,11 +85,12 @@ export class FilesController {
   }
 
   @Public()
-  @Get(":id/raw")
+  @Get([":id/raw", ":id/public"])
   @ApiOperation({ summary: "เปิดดูหรือดาวน์โหลดไฟล์โดยตรงจากเซิร์ฟเวอร์" })
   async getRaw(@Param("id") id: string, @Res() res: Response) {
     const { file, buffer } = await this.files.getRawFile(id);
     res.setHeader("Content-Type", file.mimeType);
+    res.setHeader("Cache-Control", "public, max-age=3600");
     res.setHeader("Content-Disposition", `inline; filename="${encodeURIComponent(file.originalName)}"`);
     res.send(buffer);
   }

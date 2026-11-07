@@ -35,14 +35,39 @@ export class PublicListingsService {
     return { total, page, pageSize, items: rows.map(toPublicListingDto) };
   }
 
-  async getPublicBySlug(slug: string) {
+  async getPublicBySlug(rawSlug: string) {
+    let decodedSlug = rawSlug.trim();
+    try {
+      for (let i = 0; i < 3; i += 1) {
+        const next = decodeURIComponent(decodedSlug);
+        if (next === decodedSlug) break;
+        decodedSlug = next;
+      }
+    } catch {
+      // Keep current decodedSlug if malformed % sequence
+    }
+
+    const codeSuffixMatch = decodedSlug.match(/(pr-\d{3,10})-(rent|sale)(?:-\d+)?$/i);
+    const slugOrCodeMatch: Prisma.ListingWhereInput[] = [
+      { slug: { equals: decodedSlug, mode: "insensitive" } },
+      { slug: { equals: rawSlug.trim(), mode: "insensitive" } },
+    ];
+    if (codeSuffixMatch?.[1] && codeSuffixMatch?.[2]) {
+      slugOrCodeMatch.push({
+        type: codeSuffixMatch[2].toUpperCase() as "RENT" | "SALE",
+        asset: { code: { equals: codeSuffixMatch[1].toUpperCase(), mode: "insensitive" } },
+      });
+    }
+
     const now = new Date();
     const row = await this.prisma.listing.findFirst({
       where: {
-        slug,
         status: "PUBLISHED",
         archivedAt: null,
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        AND: [
+          { OR: slugOrCodeMatch },
+          { OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+        ],
         asset: { archivedAt: null, status: { notIn: ["BOOKED", "CONTRACTED", "SOLD", "UNAVAILABLE"] } },
       },
       select: PUBLIC_LISTING_SELECT,

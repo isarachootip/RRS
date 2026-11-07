@@ -124,11 +124,26 @@ export async function fetchPublicListings(
   return { total: FALLBACK_LISTINGS.length, items: FALLBACK_LISTINGS };
 }
 
+export function safeDecodeSlug(rawSlug: string): string {
+  let decoded = rawSlug.trim();
+  try {
+    for (let i = 0; i < 3; i += 1) {
+      const next = decodeURIComponent(decoded);
+      if (next === decoded) break;
+      decoded = next;
+    }
+  } catch {
+    // Keep current string if malformed URI component
+  }
+  return decoded;
+}
+
 export async function fetchPublicListingBySlug(
   slug: string,
 ): Promise<{ listing: PublicListingItem; nearby: PublicListingItem[] } | null> {
+  const decodedSlug = safeDecodeSlug(slug);
   try {
-    const res = await fetch(`${getApiBaseUrl()}/public/listings/${encodeURIComponent(slug)}`, {
+    const res = await fetch(`${getApiBaseUrl()}/public/listings/${encodeURIComponent(decodedSlug)}`, {
       cache: "no-store",
     });
     if (res.ok) {
@@ -137,7 +152,7 @@ export async function fetchPublicListingBySlug(
   } catch {
     // Fallback check below
   }
-  const found = FALLBACK_LISTINGS.find((x) => x.slug === slug);
+  const found = FALLBACK_LISTINGS.find((x) => x.slug === decodedSlug || x.slug === slug);
   if (!found) return null;
   return { listing: found, nearby: [] };
 }
