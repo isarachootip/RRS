@@ -242,8 +242,8 @@ export async function seed(prisma: PrismaClient): Promise<SeedResult> {
     await prisma.notificationRule.upsert({ where: { event: rule.event }, update: {}, create: rule });
   }
 
-  // ข้อมูลตัวอย่างสร้างครั้งเดียว
-  if ((await prisma.asset.count()) > 0) {
+  // ข้อมูลตัวอย่างสร้างครั้งเดียว (ถ้ามีผู้ใช้หรือสินทรัพย์อยู่แล้ว จะไม่ทับข้อมูลเดิม)
+  if ((await prisma.user.count()) > 0 || (await prisma.asset.count()) > 0) {
     return {
       users: await prisma.user.count(),
       owners: await prisma.owner.count(),
