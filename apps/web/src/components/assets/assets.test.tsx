@@ -148,4 +148,45 @@ describe("P06 · AssetFormModal และ BulkApartmentModal", () => {
       lng: "100.534",
     });
   });
+
+  it("GoogleLocationPicker ค้นหาชื่อสถานที่และเลือกเติมพิกัด + เขต + จังหวัด อัตโนมัติพร้อมแสดงแผนที่ Google Maps", async () => {
+    const user = userEvent.setup();
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+    mockFetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("nominatim.openstreetmap.org/search")) {
+        return {
+          ok: true,
+          json: async () => [
+            {
+              display_name: "เซ็นทรัล ลาดพร้าว, ถนนพหลโยธิน, จตุจักร, กรุงเทพมหานคร",
+              lat: "13.816111",
+              lon: "100.561222",
+              address: { city_district: "เขตจตุจักร", state: "กรุงเทพมหานคร" },
+            },
+          ],
+        };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    render(
+      <QueryClientProvider client={qc}>
+        <AssetFormModal onClose={vi.fn()} onSaved={vi.fn()} />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByTitle("Google Maps Location Preview")).toBeInTheDocument();
+    await user.type(screen.getByLabelText("วางลิงก์ Google Maps"), "เซ็นทรัล ลาดพร้าว");
+    await user.click(screen.getByRole("button", { name: "🔍 ค้นหาสถานที่" }));
+
+    const resultBtn = await screen.findByRole("button", { name: /เซ็นทรัล ลาดพร้าว/ });
+    await user.click(resultBtn);
+
+    expect((screen.getByLabelText("ละติจูด") as HTMLInputElement).value).toBe("13.816111");
+    expect((screen.getByLabelText("ลองจิจูด") as HTMLInputElement).value).toBe("100.561222");
+    expect((screen.getByLabelText("เขตหรืออำเภอ") as HTMLInputElement).value).toBe("จตุจักร");
+    expect((screen.getByLabelText("จังหวัด") as HTMLInputElement).value).toBe("กรุงเทพมหานคร");
+  });
 });
