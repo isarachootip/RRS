@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { normalizePhone } from "@rrs/shared";
 import { AuditService } from "../audit/audit.service";
-import { checkPasswordNotEmail, hashPassword, passwordSchema } from "../auth/password";
+import { hashPassword } from "../auth/password";
 import { SessionService } from "../auth/session.service";
 import type { RequestMeta } from "../common/request-meta";
 import { PrismaService } from "../prisma/prisma.service";
@@ -19,7 +19,9 @@ export interface CreateUserInput {
 }
 
 export interface UpdateUserInput {
+  email?: string;
   fullName?: string;
+  password?: string;
   nickname?: string | null;
   phone?: string | null;
   teamId?: string | null;
@@ -68,12 +70,8 @@ export class UsersService {
     const email = input.email.trim().toLowerCase();
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {
-      throw new BadRequestException({ code: "EMAIL_EXISTS", message: "อีเมลนี้มีในระบบแล้ว" });
+      throw new BadRequestException({ code: "EMAIL_EXISTS", message: "ชื่อผู้ใช้หรืออีเมลนี้มีในระบบแล้ว" });
     }
-    const pwParse = passwordSchema.safeParse(input.password);
-    const pwError = pwParse.success ? checkPasswordNotEmail(input.password, email) : pwParse.error.issues[0]?.message;
-    if (pwError) throw new BadRequestException({ code: "WEAK_PASSWORD", message: pwError });
-
     const phone = input.phone ? normalizePhone(input.phone) : null;
     if (input.phone && !phone) {
       throw new BadRequestException({ code: "INVALID_PHONE", message: "รูปแบบเบอร์โทรไม่ถูกต้อง" });
@@ -120,10 +118,19 @@ export class UsersService {
       throw new NotFoundException({ code: "USER_NOT_FOUND", message: "ไม่พบผู้ใช้นี้" });
     }
 
+    const nextEmail = input.email ? input.email.trim().toLowerCase() : before.email;
+    if (nextEmail !== before.email) {
+      const dup = await this.prisma.user.findUnique({ where: { email: nextEmail } });
+      if (dup && dup.id !== id) {
+        throw new BadRequestException({ code: "EMAIL_EXISTS", message: "ชื่อผู้ใช้หรืออีเมลนี้มีในระบบแล้ว" });
+      }
+    }
+
     const phone = input.phone !== undefined ? (input.phone ? normalizePhone(input.phone) : null) : before.phone;
     if (input.phone && !phone) {
       throw new BadRequestException({ code: "INVALID_PHONE", message: "รูปแบบเบอร์โทรไม่ถูกต้อง" });
     }
+    const passwordHash = input.password ? await hashPassword(input.password) : undefined;
 
     await this.prisma.$transaction(async (tx) => {
       if (input.roleIds) {
@@ -133,7 +140,9 @@ export class UsersService {
       await tx.user.update({
         where: { id },
         data: {
+          email: nextEmail,
           fullName: input.fullName?.trim() ?? before.fullName,
+          ...(passwordHash ? { passwordHash, failedLoginCount: 0, lockedUntil: null } : {}),
           nickname: input.nickname !== undefined ? input.nickname?.trim() || null : before.nickname,
           phone,
           teamId: input.teamId !== undefined ? input.teamId : before.teamId,
@@ -149,21 +158,35 @@ export class UsersService {
     }
     this.cache.invalidate(id);
 
+    const { password: _pw, ...auditInput } = input;
     await this.audit.log({
       actorId,
       action: "UPDATE",
       entityType: "user",
       entityId: id,
-      before: {
-        fullName: before.fullName,
-        teamId: before.teamId,
-        isActive: before.isActive,
-        roles: before.roles.map((r) => r.role.code),
-      },
-      after: input,
+      before: { email: before.email, fullName: before.fullName, teamId: before.teamId, isActive: before.isActive },
+      after: { ...auditInput, passwordChanged: Boolean(passwordHash) },
       meta,
     });
 
+    return { ok: true };
+  }
+
+  async remove(actorId: string, id: string, meta: RequestMeta) {
+    if (actorId === id) {
+      throw new BadRequestException({ code: "CANNOT_DELETE_SELF", message: "ไม่สามารถลบบัญชีของตนเองขณะใช้งานได้" });
+    }
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user || user.archivedAt) {
+      throw new NotFoundException({ code: "USER_NOT_FOUND", message: "ไม่พบผู้ใช้นี้" });
+    }
+    await this.prisma.user.update({
+      where: { id },
+      data: { isActive: false, archivedAt: new Date(), archivedById: actorId },
+    });
+    await this.sessions.revokeAllForUser(id);
+    this.cache.invalidate(id);
+    await this.audit.log({ actorId, action: "ARCHIVE", entityType: "user", entityId: id, meta });
     return { ok: true };
   }
 

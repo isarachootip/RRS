@@ -5,6 +5,7 @@ import { type FormEvent, useState } from "react";
 import { ApiError, api } from "@/lib/api";
 import { MfaSettingsCard } from "./mfa-settings-card";
 import type { AdminRoleItem, AdminTeamItem, AdminUserItem } from "./types";
+import { UserEditModal } from "./user-edit-modal";
 
 interface UsersTabProps {
   users: AdminUserItem[];
@@ -19,6 +20,7 @@ export function UsersTab({ users, teams, roles }: UsersTabProps) {
   const [password, setPassword] = useState("");
   const [teamId, setTeamId] = useState("");
   const [roleId, setRoleId] = useState(roles[0]?.id ?? "");
+  const [editingUser, setEditingUser] = useState<AdminUserItem | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -54,6 +56,16 @@ export function UsersTab({ users, teams, roles }: UsersTabProps) {
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 
+  const deleteUser = useMutation({
+    mutationFn: (id: string) => api(`/api/v1/users/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      setErrorMsg(null);
+      setMessage("ลบผู้ใช้งานเรียบร้อยแล้ว");
+      void qc.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (err) => setErrorMsg(err instanceof ApiError ? err.message : "ลบผู้ใช้ไม่สำเร็จ"),
+  });
+
   const resetMfa = useMutation({
     mutationFn: (id: string) => api(`/api/v1/users/${id}/reset-mfa`, { method: "POST" }),
     onSuccess: () => {
@@ -87,12 +99,12 @@ export function UsersTab({ users, teams, roles }: UsersTabProps) {
           <thead className="bg-paper text-left font-medium text-ink-muted">
             <tr>
               <th className="px-4 py-3">ชื่อ-นามสกุล</th>
-              <th className="px-4 py-3">อีเมล</th>
+              <th className="px-4 py-3">ชื่อผู้ใช้ / อีเมล</th>
               <th className="px-4 py-3">ทีม</th>
               <th className="px-4 py-3">บทบาท</th>
               <th className="px-4 py-3">2FA</th>
               <th className="px-4 py-3">สถานะ</th>
-              <th className="px-4 py-3">จัดการ</th>
+              <th className="px-4 py-3">จัดการ (CRUD & รหัสผ่าน)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -105,7 +117,14 @@ export function UsersTab({ users, teams, roles }: UsersTabProps) {
                 <td className="px-4 py-3">{u.totpEnabled ? "เปิดแล้ว" : "ยังไม่เปิด"}</td>
                 <td className="px-4 py-3">{u.isActive ? "ใช้งาน" : "ปิดใช้งาน"}</td>
                 <td className="px-4 py-3">
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setEditingUser(u)}
+                      className="rounded border border-lagoon/40 bg-paper px-2.5 py-1 text-xs font-medium text-lagoon-deep hover:bg-lagoon hover:text-white"
+                    >
+                      แก้ไข / ตั้งรหัสผ่าน
+                    </button>
                     <button
                       type="button"
                       onClick={() => toggleActive.mutate(u)}
@@ -122,6 +141,13 @@ export function UsersTab({ users, teams, roles }: UsersTabProps) {
                         ปิด / รีเซ็ต 2FA
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => deleteUser.mutate(u.id)}
+                      className="rounded border border-red-300 px-2.5 py-1 text-xs text-red-600 hover:bg-red-50"
+                    >
+                      ลบ
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -150,7 +176,8 @@ export function UsersTab({ users, teams, roles }: UsersTabProps) {
         <input
           type="password"
           required
-          placeholder="รหัสผ่าน (อย่างน้อย 10 ตัว)"
+          minLength={6}
+          placeholder="รหัสผ่าน (อย่างน้อย 6 ตัว)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           className="h-9 rounded border border-line px-3 text-sm"
@@ -186,10 +213,23 @@ export function UsersTab({ users, teams, roles }: UsersTabProps) {
             disabled={createMutation.isPending}
             className="h-9 rounded bg-lagoon px-4 text-sm font-medium text-white hover:bg-lagoon-deep"
           >
-            เพิ่มผู้ใช้
+            + เพิ่มผู้ใช้
           </button>
         </div>
       </form>
+
+      {editingUser && (
+        <UserEditModal
+          user={editingUser}
+          teams={teams}
+          roles={roles}
+          onClose={() => setEditingUser(null)}
+          onSuccess={(msg) => {
+            setErrorMsg(null);
+            setMessage(msg);
+          }}
+        />
+      )}
     </div>
   );
 }

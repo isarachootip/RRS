@@ -142,6 +142,18 @@ describe("SettingsView", () => {
         expect.objectContaining({ method: "POST" }),
       );
     });
+
+    // แก้ไขข้อมูลและตั้งรหัสผ่านใหม่ให้ผู้ใช้
+    await user.click(screen.getByRole("button", { name: "แก้ไข / ตั้งรหัสผ่าน" }));
+    const pwInput = await screen.findByLabelText(/รหัสผ่านใหม่/);
+    await user.type(pwInput, "oil10041969*");
+    await user.click(screen.getByRole("button", { name: "บันทึกการแก้ไข" }));
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/v1/users/u-agent-1"),
+        expect.objectContaining({ method: "PATCH" }),
+      );
+    });
   });
 
   it("Admin → เปิดแท็บบทบาทและสิทธิ์ ปรับ checkbox/scope แล้วกดบันทึกได้", async () => {
