@@ -3,6 +3,7 @@ import type { AgreementStatus, AssetAgentRole, CommissionFormula, Prisma, Transa
 import type { AuthUser } from "../auth/auth.types";
 import { PrismaService } from "../prisma/prisma.service";
 import { DataScopeService } from "../rbac/data-scope.service";
+import { FILE_META_PUBLIC_SELECT } from "./assets.types";
 
 export interface CreateAgreementInput {
   transactionType: TransactionType;
@@ -82,7 +83,7 @@ export class AssetRelationsService {
         caption: input.caption ?? null,
         isCover,
       },
-      include: { file: true },
+      include: { file: { select: FILE_META_PUBLIC_SELECT } },
     });
 
     await this.prisma.asset.update({ where: { id: assetId }, data: { updatedById: user.id } });
@@ -107,7 +108,7 @@ export class AssetRelationsService {
     const items = await this.prisma.assetMedia.findMany({
       where: { assetId },
       orderBy: { sortOrder: "asc" },
-      include: { file: true },
+      include: { file: { select: FILE_META_PUBLIC_SELECT } },
     });
     return { items };
   }

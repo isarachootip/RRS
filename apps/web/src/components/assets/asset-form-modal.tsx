@@ -21,21 +21,9 @@ import { CategoryAttributesFields, defaultAttributesForCategory } from "./catego
 
 export type { EditableAsset };
 
-interface OwnerOption {
-  id: string;
-  code: string;
-  fullName: string;
-}
+interface OwnerOption { id: string; code: string; fullName: string }
 
-export function AssetFormModal({
-  initial,
-  onClose,
-  onSaved,
-}: {
-  initial?: EditableAsset | null;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
+export function AssetFormModal({ initial, onClose, onSaved }: { initial?: EditableAsset | null; onClose: () => void; onSaved: () => void }) {
   const initCat = ((initial?.category as AssetCategory) ?? "CONDO") as AssetCategory;
   const [category, setCategory] = useState<AssetCategory>(initCat);
   const [ownershipType, setOwnershipType] = useState<"OWNER" | "AGENT">(initial?.ownershipType ?? "AGENT");
@@ -56,11 +44,12 @@ export function AssetFormModal({
 
   const { data: ownersData } = useQuery({
     queryKey: ["owners-options"],
+    staleTime: 60_000,
     queryFn: () => api<{ items: OwnerOption[] }>("/api/v1/owners?pageSize=50"),
   });
 
   useEffect(() => {
-    if (!initial?.id) return;
+    if (!initial?.id || initial.attributes !== undefined) return;
     void api<EditableAsset>(`/api/v1/assets/${initial.id}`)
       .then((full) => {
         if (!full?.id) return;
@@ -69,7 +58,7 @@ export function AssetFormModal({
         if (full.attributes) setAttributes(full.attributes);
       })
       .catch(() => {});
-  }, [initial?.id, initCat]);
+  }, [initial?.id, initial?.attributes, initCat]);
 
   function handleCategoryChange(nextCat: AssetCategory) {
     setCategory(nextCat);

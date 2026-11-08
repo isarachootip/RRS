@@ -49,13 +49,44 @@ export interface UpsertAssetInput {
   internalNote?: string | null;
 }
 
+export const FILE_META_PUBLIC_SELECT = {
+  id: true,
+  storageKey: true,
+  originalName: true,
+  mimeType: true,
+  sizeBytes: true,
+  entityType: true,
+  entityId: true,
+  uploadedById: true,
+  createdAt: true,
+  archivedAt: true,
+} as const;
+
+export const assetListInclude = {
+  owner: {
+    select: {
+      id: true,
+      code: true,
+      fullName: true,
+      phone: true,
+      lineId: true,
+      email: true,
+      agentId: true,
+      agent: { select: { teamId: true } },
+    },
+  },
+  project: { select: { id: true, name: true, district: true, province: true } },
+  primaryAgent: { select: { id: true, fullName: true, teamId: true } },
+  agents: { select: { userId: true, role: true, user: { select: { id: true, fullName: true, teamId: true } } } },
+};
+
 export const assetDetailInclude = {
   owner: { include: { agent: { select: { teamId: true } } } },
   project: true,
   building: true,
   primaryAgent: { select: { id: true, fullName: true, teamId: true } },
   agents: { include: { user: { select: { id: true, fullName: true, teamId: true } } } },
-  media: { orderBy: { sortOrder: "asc" as const }, include: { file: true } },
+  media: { orderBy: { sortOrder: "asc" as const }, include: { file: { select: FILE_META_PUBLIC_SELECT } } },
   agreements: { where: { archivedAt: null }, orderBy: { createdAt: "desc" as const } },
 };
 
@@ -85,6 +116,8 @@ export function buildAssetListWhere(
                 { code: { contains: q, mode: "insensitive" as const } },
                 { unitNo: { contains: q, mode: "insensitive" as const } },
                 { district: { contains: q, mode: "insensitive" as const } },
+                { province: { contains: q, mode: "insensitive" as const } },
+                { address: { contains: q, mode: "insensitive" as const } },
                 { project: { name: { contains: q, mode: "insensitive" as const } } },
               ],
             },

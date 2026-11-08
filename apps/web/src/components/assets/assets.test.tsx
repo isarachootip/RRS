@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OwnerFormModal } from "../owners/owner-form-modal";
 import { AssetFormModal } from "./asset-form-modal";
 import { parseGoogleMapsCoords } from "./asset-location-media-fields";
+import { AssetsView } from "./assets-view";
 import { BulkApartmentModal } from "./bulk-apartment-modal";
 
 const mockFetch = vi.fn();
@@ -171,5 +172,20 @@ describe("P06 · AssetFormModal และ BulkApartmentModal", () => {
     expect((screen.getByLabelText("ลองจิจูด") as HTMLInputElement).value).toBe("100.561222");
     expect((screen.getByLabelText("เขตหรืออำเภอ") as HTMLInputElement).value).toBe("จตุจักร");
     expect((screen.getByLabelText("จังหวัด") as HTMLInputElement).value).toBe("กรุงเทพมหานคร");
+  });
+
+  it("AssetsView แสดงทำเล (เขต/จังหวัด) ขนาดที่ดิน/พื้นที่ใช้สอย และทั้งราคาเช่า/ราคาขายในตาราง", async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        total: 1,
+        items: [{ id: "a-land", code: "PR-000030", category: "LAND", ownershipType: "AGENT", unitNo: "โฉนด 5512", district: "บางพลี", province: "สมุทรปราการ", rentPrice: null, salePrice: "15000000.00", status: "AVAILABLE", attributes: { land: { rai: 2, ngan: 1, sqWah: 0 } } }],
+      }),
+    });
+    render(<QueryClientProvider client={qc}><AssetsView /></QueryClientProvider>);
+    expect(await screen.findByText("บางพลี · สมุทรปราการ")).toBeInTheDocument();
+    expect(screen.getByText(/#โฉนด 5512 · 2 ไร่ 1 งาน/)).toBeInTheDocument();
+    expect(screen.getByText("ขาย ฿15,000,000")).toBeInTheDocument();
   });
 });

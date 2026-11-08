@@ -10,6 +10,7 @@ import {
   type ListAssetsParams,
   type UpsertAssetInput,
   assetDetailInclude,
+  assetListInclude,
   buildAssetListWhere,
   buildAssetUpdateData,
   toDec,
@@ -51,7 +52,7 @@ export class AssetsService {
         orderBy: { [params.sortBy ?? "createdAt"]: params.sortDir ?? "desc" },
         skip: (page - 1) * pageSize,
         take: pageSize,
-        include: assetDetailInclude,
+        include: assetListInclude,
       }),
     ]);
 

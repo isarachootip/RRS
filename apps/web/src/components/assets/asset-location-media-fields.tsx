@@ -36,6 +36,7 @@ export function AssetLocationMediaFields({
 }: AssetLocationMediaFieldsProps) {
   const { data: projectsData } = useQuery({
     queryKey: ["projects-options"],
+    staleTime: 60_000,
     queryFn: () => api<{ items: Array<{ id: string; name: string }> }>("/api/v1/projects"),
   });
 

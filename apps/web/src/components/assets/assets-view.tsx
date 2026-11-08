@@ -1,10 +1,10 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createColumnHelper, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
-import { ASSET_CATEGORIES, type AssetCategory } from "@rrs/shared";
+import { ASSET_CATEGORIES, type AssetCategory, formatLandSizeText } from "@rrs/shared";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ConfirmArchiveDialog } from "@/components/confirm-archive-dialog";
 import { type MessageKey, t } from "@/i18n/th";
 import { api } from "@/lib/api";
@@ -17,14 +17,51 @@ export interface AssetRow {
   category: AssetCategory;
   ownershipType: "OWNER" | "AGENT";
   unitNo: string | null;
+  tower?: string | null;
+  floor?: number | null;
+  address?: string | null;
+  district?: string | null;
+  province?: string | null;
+  latitude?: string | number | null;
+  longitude?: string | number | null;
   areaSqm?: string | number | null;
+  roomType?: string | null;
+  bedrooms?: number | null;
+  bathrooms?: number | null;
+  furniture?: string | null;
+  petAllowed?: boolean;
   status: string;
   rentPrice: string | null;
   minRentPrice: string | null;
   salePrice?: string | null;
   attributes?: Record<string, unknown> | null;
-  project?: { id: string; name: string } | null;
+  project?: { id: string; name: string; district?: string | null; province?: string | null } | null;
   primaryAgent?: { id: string; fullName: string } | null;
+}
+
+function formatLocationCell(row: AssetRow): string {
+  const loc = [row.district ?? row.project?.district, row.province ?? row.project?.province].filter(Boolean).join(" · ");
+  if (row.project?.name) return loc ? `${row.project.name} (${loc})` : row.project.name;
+  return loc || row.address || "-";
+}
+
+function formatSizeCell(row: AssetRow): string {
+  const attrs = (row.attributes ?? {}) as Record<string, unknown>;
+  const land = attrs.land as { rai?: number; ngan?: number; sqWah?: number } | undefined;
+  const landStr = land ? formatLandSizeText(land) : "";
+  const sqm = Number(row.areaSqm ?? attrs.buildingAreaSqm ?? attrs.warehouseAreaSqm ?? 0);
+  const sqmStr = sqm > 0 ? `${sqm.toLocaleString()} ตร.ม.` : "";
+  const unitStr = row.unitNo ? `#${row.unitNo}` : "";
+  return [unitStr, landStr, sqmStr].filter(Boolean).join(" · ") || "-";
+}
+
+function formatPriceCell(row: AssetRow): string {
+  const rent = row.rentPrice ? Number(row.rentPrice) : 0;
+  const sale = row.salePrice ? Number(row.salePrice) : 0;
+  const parts: string[] = [];
+  if (rent > 0) parts.push(`เช่า ฿${rent.toLocaleString()}`);
+  if (sale > 0) parts.push(`ขาย ฿${sale.toLocaleString()}`);
+  return parts.join(" / ") || "-";
 }
 
 const col = createColumnHelper<AssetRow>();
@@ -32,17 +69,30 @@ const col = createColumnHelper<AssetRow>();
 export function AssetsView() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState("");
   const [archived, setArchived] = useState<"false" | "true">("false");
   const [showAdd, setShowAdd] = useState(false);
   const [editingAsset, setEditingAsset] = useState<AssetRow | null>(null);
   const [showBulk, setShowBulk] = useState(false);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["assets", search, category, archived],
+  useEffect(() => {
+    const trimmed = search.trim();
+    if (!trimmed) {
+      setDebouncedSearch("");
+      return;
+    }
+    const timer = setTimeout(() => setDebouncedSearch(trimmed), 250);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["assets", debouncedSearch, category, archived],
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
     queryFn: () => {
-      const qs = new URLSearchParams({ pageSize: "30" });
-      if (search.trim()) qs.set("search", search.trim());
+      const qs = new URLSearchParams({ pageSize: "50" });
+      if (debouncedSearch) qs.set("search", debouncedSearch);
       if (category) qs.set("category", category);
       if (archived === "true") qs.set("archived", "true");
       return api<{ items: AssetRow[]; total: number }>(`/api/v1/assets?${qs.toString()}`);
@@ -67,9 +117,9 @@ export function AssetsView() {
         header: "ประเภท",
         cell: (info) => t(`assets.cat.${info.getValue()}` as MessageKey),
       }),
-      col.accessor((row) => row.project?.name ?? "-", { id: "projectName", header: "โครงการ" }),
-      col.accessor((row) => row.unitNo ?? "-", { id: "unitNo", header: "เลขห้อง/บ้าน" }),
-      col.accessor((row) => row.rentPrice ?? "-", { id: "rentPrice", header: "ค่าเช่า (บาท)" }),
+      col.accessor((row) => formatLocationCell(row), { id: "projectName", header: "โครงการ / ทำเล (เขต)" }),
+      col.accessor((row) => formatSizeCell(row), { id: "unitNo", header: "เลขห้อง/บ้าน · ขนาดพื้นที่" }),
+      col.accessor((row) => formatPriceCell(row), { id: "rentPrice", header: "ราคาเช่า / ราคาขาย" }),
       col.accessor("status", {
         header: "สถานะ",
         cell: (info) => (
@@ -83,16 +133,8 @@ export function AssetsView() {
           const item = info.row.original;
           return (
             <div className="flex flex-wrap items-center gap-2">
-              <Link href={`/assets/${item.id}`} className="rounded border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink hover:bg-surface-subtle">
-                ดู
-              </Link>
-              <button
-                type="button"
-                onClick={() => { setEditingAsset(item); setShowAdd(true); }}
-                className="rounded border border-brand/40 bg-lagoon-soft/50 px-2.5 py-1 text-xs font-medium text-brand hover:bg-lagoon-soft"
-              >
-                แก้ไข
-              </button>
+              <Link href={`/assets/${item.id}`} className="rounded border border-line bg-surface px-2.5 py-1 text-xs font-medium text-ink hover:bg-surface-subtle">ดู</Link>
+              <button type="button" onClick={() => { setEditingAsset(item); setShowAdd(true); }} className="rounded border border-brand/40 bg-lagoon-soft/50 px-2.5 py-1 text-xs font-medium text-brand hover:bg-lagoon-soft">แก้ไข</button>
               {archived === "false" && (
                 <ConfirmArchiveDialog
                   itemLabel={`${item.code} ${item.unitNo ?? ""}`}
@@ -122,20 +164,12 @@ export function AssetsView() {
           <p className="text-sm text-ink-muted">{t("assets.subtitle")}</p>
         </div>
         <div className="flex gap-2">
-          <button type="button" onClick={() => setShowBulk(true)} className="rounded-md border border-line bg-surface px-3 py-2 text-xs font-medium text-ink">
-            {t("assets.bulkAdd")}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setEditingAsset(null); setShowAdd(true); }}
-            className="rounded-md bg-brand px-4 py-2 text-xs font-medium text-white hover:opacity-90"
-          >
-            + {t("assets.add")}
-          </button>
+          <button type="button" onClick={() => setShowBulk(true)} className="rounded-md border border-line bg-surface px-3 py-2 text-xs font-medium text-ink">{t("assets.bulkAdd")}</button>
+          <button type="button" onClick={() => { setEditingAsset(null); setShowAdd(true); }} className="rounded-md bg-brand px-4 py-2 text-xs font-medium text-white hover:opacity-90">+ {t("assets.add")}</button>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <input type="search" placeholder={t("assets.search")} value={search} onChange={(e) => setSearch(e.target.value)} className="w-full max-w-xs rounded-md border border-line bg-surface px-3 py-2 text-sm" />
         <select aria-label="กรองประเภทสินทรัพย์" value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-md border border-line bg-surface px-3 py-2 text-sm">
           <option value="">ทุกประเภทสินทรัพย์</option>
@@ -145,6 +179,7 @@ export function AssetsView() {
           <option value="false">รายการปกติ</option>
           <option value="true">เก็บเข้ากรุแล้ว (Archived)</option>
         </select>
+        {isFetching && !isLoading && <span className="text-xs text-ink-muted">กำลังอัปเดต...</span>}
       </div>
 
       {isLoading ? (
@@ -155,37 +190,17 @@ export function AssetsView() {
         <div className="overflow-x-auto rounded-lg border border-line bg-surface">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-line bg-surface-subtle text-xs text-ink-muted">
-              {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id}>
-                  {hg.headers.map((h) => <th key={h.id} className="px-4 py-3 font-medium">{flexRender(h.column.columnDef.header, h.getContext())}</th>)}
-                </tr>
-              ))}
+              {table.getHeaderGroups().map((hg) => <tr key={hg.id}>{hg.headers.map((h) => <th key={h.id} className="px-4 py-3 font-medium">{flexRender(h.column.columnDef.header, h.getContext())}</th>)}</tr>)}
             </thead>
             <tbody className="divide-y divide-line">
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-surface-subtle">
-                  {row.getVisibleCells().map((cell) => <td key={cell.id} className="px-4 py-3">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}
-                </tr>
-              ))}
+              {table.getRowModel().rows.map((row) => <tr key={row.id} className="hover:bg-surface-subtle">{row.getVisibleCells().map((cell) => <td key={cell.id} className="px-4 py-3">{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}</tr>)}
             </tbody>
           </table>
         </div>
       )}
 
-      {showAdd && (
-        <AssetFormModal
-          initial={editingAsset}
-          onClose={() => { setShowAdd(false); setEditingAsset(null); }}
-          onSaved={() => { setShowAdd(false); setEditingAsset(null); refresh(); }}
-        />
-      )}
-
-      {showBulk && (
-        <BulkApartmentModal
-          onClose={() => setShowBulk(false)}
-          onSaved={() => { setShowBulk(false); refresh(); }}
-        />
-      )}
+      {showAdd && <AssetFormModal initial={editingAsset} onClose={() => { setShowAdd(false); setEditingAsset(null); }} onSaved={() => { setShowAdd(false); setEditingAsset(null); refresh(); }} />}
+      {showBulk && <BulkApartmentModal onClose={() => setShowBulk(false)} onSaved={() => { setShowBulk(false); refresh(); }} />}
     </div>
   );
 }
