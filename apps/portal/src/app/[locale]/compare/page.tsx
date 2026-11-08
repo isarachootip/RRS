@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { COMPARE_STORAGE_KEY, FAVORITES_STORAGE_KEY, ListingCard } from "@/components/listing-card";
 import { dictionaries, isLocale, type Locale } from "@/i18n/dictionaries";
+import { buildPortalCardBadges, getPortalCategoryLabel } from "@/lib/category-specs";
 import type { PublicListingItem } from "@/lib/public-api";
 
 export default function ComparePage({ params }: { params: Promise<{ locale: string }> }) {
@@ -51,6 +52,14 @@ export default function ComparePage({ params }: { params: Promise<{ locale: stri
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   <tr>
+                    <td className="px-4 py-3 font-medium">Category</td>
+                    {compared.map((item) => (
+                      <td key={item.id} className="px-4 py-3">
+                        {getPortalCategoryLabel(item.asset.category, l, d)}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr>
                     <td className="px-4 py-3 font-medium">Price</td>
                     {compared.map((item) => (
                       <td key={item.id} className="px-4 py-3 font-bold">
@@ -67,10 +76,10 @@ export default function ComparePage({ params }: { params: Promise<{ locale: stri
                     ))}
                   </tr>
                   <tr>
-                    <td className="px-4 py-3 font-medium">{d.specBedrooms}</td>
+                    <td className="px-4 py-3 font-medium">Specs</td>
                     {compared.map((item) => (
-                      <td key={item.id} className="px-4 py-3">
-                        {item.asset.bedrooms ?? "-"}
+                      <td key={item.id} className="px-4 py-3 text-xs text-slate-700">
+                        {buildPortalCardBadges(item.asset, l).join(" · ") || "-"}
                       </td>
                     ))}
                   </tr>

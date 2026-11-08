@@ -18,21 +18,14 @@ describe("P06 · OwnerFormModal (แจ้งเตือนข้อมูล�
   it("ตรวจพบเบอร์ซ้ำ → แสดงคำเตือน และเมื่อกดยืนยันบันทึกซ้ำจึงส่ง POST /api/v1/owners", async () => {
     const user = userEvent.setup();
     const onSaved = vi.fn();
-
     mockFetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({
-          items: [{ id: "ow-1", code: "OW-000001", fullName: "สมศักดิ์ เดิม", agentName: "เอเจนต์ เอ" }],
-        }),
+        json: async () => ({ items: [{ id: "ow-1", code: "OW-000001", fullName: "สมศักดิ์ เดิม", agentName: "เอเจนต์ เอ" }] }),
       })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ id: "ow-2", code: "OW-000002" }),
-      });
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ id: "ow-2", code: "OW-000002" }) });
 
     render(<OwnerFormModal onClose={vi.fn()} onSaved={onSaved} />);
-
     await user.type(screen.getByLabelText("ชื่อ-นามสกุลเจ้าของทรัพย์"), "สมศักดิ์ ใหม่");
     await user.type(screen.getByLabelText("เบอร์โทรศัพท์เจ้าของทรัพย์"), "0812345678");
     await user.click(screen.getByRole("button", { name: "บันทึกเจ้าของทรัพย์" }));
@@ -46,7 +39,7 @@ describe("P06 · OwnerFormModal (แจ้งเตือนข้อมูล�
 });
 
 describe("P06 · AssetFormModal และ BulkApartmentModal", () => {
-  it("เปลี่ยนฟิลด์เฉพาะตามประเภทสินทรัพย์ (CONDO → HOUSE → FACTORY) และสร้างอพาร์ตเมนต์ 10 ห้องได้", async () => {
+  it("เปลี่ยนฟิลด์เฉพาะตามประเภทสินทรัพย์ (CONDO → HOUSE → COMMERCIAL → LAND → FACTORY) และสร้างอพาร์ตเมนต์ 10 ห้องได้", async () => {
     const user = userEvent.setup();
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
@@ -68,9 +61,26 @@ describe("P06 · AssetFormModal และ BulkApartmentModal", () => {
     );
 
     expect(screen.getByLabelText("ค่าส่วนกลางต่อตารางเมตร")).toBeInTheDocument();
+    expect(screen.getByLabelText("อาคารหรือตึก")).toBeInTheDocument();
+    expect(screen.getByLabelText("ชั้น")).toBeInTheDocument();
+    expect(screen.getByLabelText("รูปแบบห้อง")).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("ประเภทสินทรัพย์"), "HOUSE");
     expect(screen.getByLabelText("ที่ดิน (ไร่)")).toBeInTheDocument();
+    expect(screen.queryByLabelText("อาคารหรือตึก")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("ชั้น")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("จำนวนห้องนอน")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("ประเภทสินทรัพย์"), "COMMERCIAL");
+    expect(screen.getByLabelText("จำนวนคูหา")).toBeInTheDocument();
+    expect(screen.getByLabelText("มีชั้นลอย")).toBeInTheDocument();
+    expect(screen.getByLabelText("หน้ากว้างอาคาร (เมตร)")).toBeInTheDocument();
+    expect(screen.getByLabelText("ความลึกอาคาร (เมตร)")).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText("ประเภทสินทรัพย์"), "LAND");
+    expect(screen.getByLabelText("ประเภทเอกสารสิทธิ์")).toBeInTheDocument();
+    expect(screen.queryByLabelText("พื้นที่ใช้สอย")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("จำนวนห้องนอน")).not.toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("ประเภทสินทรัพย์"), "FACTORY");
     expect(screen.getByLabelText("พื้นที่อาคารโรงงาน")).toBeInTheDocument();
@@ -97,8 +107,7 @@ describe("P06 · AssetFormModal และ BulkApartmentModal", () => {
     const onSaved = vi.fn();
 
     mockFetch.mockImplementation(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("/api/v1/owners")) {
+      if (String(input).includes("/api/v1/owners")) {
         return { ok: true, json: async () => ({ items: [{ id: "ow-1", code: "OW-000001", fullName: "เจ้าของ A" }] }) };
       }
       return { ok: true, json: async () => ({ id: "asset-1" }) };
@@ -107,15 +116,7 @@ describe("P06 · AssetFormModal และ BulkApartmentModal", () => {
     render(
       <QueryClientProvider client={qc}>
         <AssetFormModal
-          initial={{
-            id: "asset-1",
-            code: "PR-000001",
-            category: "CONDO",
-            ownershipType: "OWNER",
-            unitNo: "1205",
-            rentPrice: "18000",
-            minRentPrice: "16000",
-          }}
+          initial={{ id: "asset-1", code: "PR-000001", category: "CONDO", ownershipType: "OWNER", unitNo: "1205", rentPrice: "18000", minRentPrice: "16000" }}
           onClose={vi.fn()}
           onSaved={onSaved}
         />
@@ -128,25 +129,13 @@ describe("P06 · AssetFormModal และ BulkApartmentModal", () => {
     await user.click(screen.getByRole("button", { name: "บันทึกทรัพย์สิน" }));
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
-    expect(mockFetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/v1/assets/asset-1"),
-      expect.objectContaining({ method: "PATCH" }),
-    );
+    expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("/api/v1/assets/asset-1"), expect.objectContaining({ method: "PATCH" }));
   });
 
   it("parseGoogleMapsCoords แยกพิกัด Latitude/Longitude จากลิงก์ Google Maps ได้ถูกต้อง", () => {
-    expect(parseGoogleMapsCoords("https://www.google.com/maps/place/Bangkok/@13.7563,100.5018,17z")).toEqual({
-      lat: "13.7563",
-      lng: "100.5018",
-    });
-    expect(parseGoogleMapsCoords("https://maps.google.com/?q=13.7307,100.5691")).toEqual({
-      lat: "13.7307",
-      lng: "100.5691",
-    });
-    expect(parseGoogleMapsCoords("13.7450, 100.5340")).toEqual({
-      lat: "13.745",
-      lng: "100.534",
-    });
+    expect(parseGoogleMapsCoords("https://www.google.com/maps/place/Bangkok/@13.7563,100.5018,17z")).toEqual({ lat: "13.7563", lng: "100.5018" });
+    expect(parseGoogleMapsCoords("https://maps.google.com/?q=13.7307,100.5691")).toEqual({ lat: "13.7307", lng: "100.5691" });
+    expect(parseGoogleMapsCoords("13.7450, 100.5340")).toEqual({ lat: "13.745", lng: "100.534" });
   });
 
   it("GoogleLocationPicker ค้นหาชื่อสถานที่และเลือกเติมพิกัด + เขต + จังหวัด อัตโนมัติพร้อมแสดงแผนที่ Google Maps", async () => {
@@ -154,17 +143,11 @@ describe("P06 · AssetFormModal และ BulkApartmentModal", () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
     mockFetch.mockImplementation(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes("nominatim.openstreetmap.org/search")) {
+      if (String(input).includes("nominatim.openstreetmap.org/search")) {
         return {
           ok: true,
           json: async () => [
-            {
-              display_name: "เซ็นทรัล ลาดพร้าว, ถนนพหลโยธิน, จตุจักร, กรุงเทพมหานคร",
-              lat: "13.816111",
-              lon: "100.561222",
-              address: { city_district: "เขตจตุจักร", state: "กรุงเทพมหานคร" },
-            },
+            { display_name: "เซ็นทรัล ลาดพร้าว, ถนนพหลโยธิน, จตุจักร, กรุงเทพมหานคร", lat: "13.816111", lon: "100.561222", address: { city_district: "เขตจตุจักร", state: "กรุงเทพมหานคร" } },
           ],
         };
       }

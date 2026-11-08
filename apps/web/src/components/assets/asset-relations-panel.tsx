@@ -120,7 +120,6 @@ export function AssetRelationsPanel({ assetId, media, agents, agreements }: Asse
                 className="flex items-center justify-between gap-2 rounded border border-line bg-surface-subtle px-3 py-2 text-xs"
               >
                 <div className="flex items-center gap-2.5 overflow-hidden">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={`/api/v1/files/${m.fileId}/raw`}
                     alt={m.file?.originalName ?? "รูปทรัพย์สิน"}

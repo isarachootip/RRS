@@ -1,7 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import type { AssetCategory } from "@rrs/shared";
 import { api } from "@/lib/api";
+import { isVerticalUnitCategory } from "./asset-unit-spec-fields";
 import { GoogleLocationPicker, parseGoogleMapsCoords } from "./google-location-picker";
 
 export { parseGoogleMapsCoords };
@@ -18,6 +20,7 @@ export interface AssetLocationState {
 }
 
 interface AssetLocationMediaFieldsProps {
+  category?: AssetCategory;
   loc: AssetLocationState;
   onChange: (patch: Partial<AssetLocationState>) => void;
   pendingPhotos: File[];
@@ -25,6 +28,7 @@ interface AssetLocationMediaFieldsProps {
 }
 
 export function AssetLocationMediaFields({
+  category = "CONDO",
   loc,
   onChange,
   pendingPhotos,
@@ -34,6 +38,14 @@ export function AssetLocationMediaFields({
     queryKey: ["projects-options"],
     queryFn: () => api<{ items: Array<{ id: string; name: string }> }>("/api/v1/projects"),
   });
+
+  const showVertical = isVerticalUnitCategory(category);
+  const projectLabel =
+    category === "HOUSE" || category === "TOWNHOME"
+      ? "โครงการ / หมู่บ้านจัดสรร (Project)"
+      : category === "CONDO"
+        ? "โครงการคอนโด (Project)"
+        : "โครงการ / ทำเลอ้างอิง (ถ้ามี)";
 
   const selectedProjectName = (projectsData?.items ?? []).find((p) => p.id === loc.projectId)?.name ?? "";
   const defaultMapQuery = [selectedProjectName, loc.address, loc.district, loc.province].filter(Boolean).join(" ");
@@ -55,8 +67,8 @@ export function AssetLocationMediaFields({
           สถานที่ตั้ง และพิกัดแผนที่ (Location & Google Maps)
         </h3>
         <div className="grid gap-3 sm:grid-cols-3">
-          <label className="space-y-1 text-xs font-medium text-ink sm:col-span-1">
-            <span>โครงการ (Project)</span>
+          <label className={`space-y-1 text-xs font-medium text-ink ${showVertical ? "sm:col-span-1" : "sm:col-span-3"}`}>
+            <span>{projectLabel}</span>
             <select
               aria-label="โครงการ"
               value={loc.projectId}
@@ -69,14 +81,18 @@ export function AssetLocationMediaFields({
               ))}
             </select>
           </label>
-          <label className="space-y-1 text-xs font-medium text-ink">
-            <span>อาคาร / ตึก (Tower)</span>
-            <input aria-label="อาคารหรือตึก" value={loc.tower} onChange={(e) => onChange({ tower: e.target.value })} placeholder="เช่น Building A" className={inputCls} />
-          </label>
-          <label className="space-y-1 text-xs font-medium text-ink">
-            <span>ชั้น (Floor)</span>
-            <input type="number" aria-label="ชั้น" value={loc.floor} onChange={(e) => onChange({ floor: e.target.value })} placeholder="เช่น 12" className={inputCls} />
-          </label>
+          {showVertical && (
+            <>
+              <label className="space-y-1 text-xs font-medium text-ink">
+                <span>อาคาร / ตึก (Tower)</span>
+                <input aria-label="อาคารหรือตึก" value={loc.tower} onChange={(e) => onChange({ tower: e.target.value })} placeholder="เช่น Building A" className={inputCls} />
+              </label>
+              <label className="space-y-1 text-xs font-medium text-ink">
+                <span>ชั้นที่อยู่ (Floor)</span>
+                <input type="number" aria-label="ชั้น" value={loc.floor} onChange={(e) => onChange({ floor: e.target.value })} placeholder="เช่น 12" className={inputCls} />
+              </label>
+            </>
+          )}
           <label className="space-y-1 text-xs font-medium text-ink sm:col-span-3">
             <span>ที่อยู่ / ซอย / ถนน / สถานที่ตั้ง</span>
             <input aria-label="ที่อยู่หรือสถานที่ตั้ง" value={loc.address} onChange={(e) => onChange({ address: e.target.value })} placeholder="เช่น ซอยสุขุมวิท 24 ใกล้ BTS พร้อมพงษ์" className={inputCls} />
@@ -103,9 +119,9 @@ export function AssetLocationMediaFields({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-              รูปภาพห้อง และสถานที่ (Room & Place Photos)
+              รูปภาพทรัพย์สิน และสถานที่จริง (Property & Place Photos)
             </h3>
-            <p className="text-xs text-ink-muted">เลือกรูปภาพห้อง อาคาร หรือสถานที่จริง (JPG, PNG, WEBP เลือกได้หลายรูป)</p>
+            <p className="text-xs text-ink-muted">เลือกรูปภาพทรัพย์สิน อาคาร หรือสถานที่จริง (JPG, PNG, WEBP เลือกได้หลายรูป)</p>
           </div>
           <label className="cursor-pointer rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             + เลือกรูปภาพห้อง/สถานที่

@@ -113,7 +113,7 @@ export const th = {
   "assets.cat.FACTORY": "โรงงาน",
   "assets.cat.WAREHOUSE": "โกดัง",
   "assets.cat.LAND": "ที่ดิน",
-  "assets.cat.COMMERCIAL": "อาคารพาณิชย์",
+  "assets.cat.COMMERCIAL": "อาคารพาณิชย์ / ห้องแถว",
   "assets.ownership.OWNER": "ทรัพย์บริษัท (Owner)",
   "assets.ownership.AGENT": "รับฝาก (Agent)",
   "assets.agents.title": "ผู้ดูแลทรัพย์สิน (Asset Agents)",

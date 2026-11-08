@@ -1,6 +1,7 @@
 import type { INestApplication } from "@nestjs/common";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { buildPublicLocation } from "../src/listings/listings-public.helper";
 import { resetPublicRateLimitBuckets } from "../src/listings/public-listings.controller";
 import type { PrismaService } from "../src/prisma/prisma.service";
 import { createTestApp, createUser, resetRoleCache } from "./helpers";
@@ -171,6 +172,9 @@ describe("P20 Listings workflow & Public API contract test", () => {
       longitude: 100.56,
       approximateLocation: true,
     });
+    expect(buildPublicLocation("COMMERCIAL", 13.736717, 100.563186, null, null).approximateLocation).toBe(true);
+    expect(buildPublicLocation("FACTORY", 13.736717, 100.563186, null, null).approximateLocation).toBe(true);
+    expect(buildPublicLocation("CONDO", 13.736717, 100.563186, null, null).approximateLocation).toBe(false);
     expect(detailRes.body.listing.viewCount).toBe(1);
   });
 

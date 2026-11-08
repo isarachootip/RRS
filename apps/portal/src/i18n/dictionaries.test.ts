@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { buildPortalCardBadges, buildPortalSpecGrid, formatPortalAttributeEntries } from "@/lib/category-specs";
 import { FALLBACK_LISTINGS, buildListingJsonLd, fetchPublicListingBySlug, safeDecodeSlug } from "@/lib/public-api";
 import { LOCALES, LOCALE_LABELS, dictionaries, isLocale, isRtlLocale } from "./dictionaries";
 
@@ -54,5 +55,47 @@ describe("P21 Portal 7-Language Dictionaries (th, en, ru, ja, zh, ar, de) & SEO 
       expect.anything(),
     );
     vi.unstubAllGlobals();
+  });
+
+  it("แสดงสเปกและจุดเด่นบนเว็บหน้าบ้านแตกต่างกันตามประเภททรัพย์ (คอนโด vs บ้านเดี่ยว vs อาคารพาณิชย์/ห้องแถว vs ที่ดิน)", () => {
+    const condoSpecs = buildPortalSpecGrid(FALLBACK_LISTINGS[0]!.asset, "th", dictionaries.th);
+    expect(condoSpecs.some((s) => s.label === "ชั้น" && s.value.includes("18"))).toBe(true);
+
+    const houseBadges = buildPortalCardBadges(
+      {
+        ...FALLBACK_LISTINGS[0]!.asset,
+        category: "HOUSE",
+        floor: null,
+        tower: null,
+        areaSqm: 210,
+        bedrooms: 4,
+        bathrooms: 3,
+        attributes: { land: { rai: 0, ngan: 0, sqWah: 65 }, stories: 2, parkingSlots: 2 },
+      },
+      "th",
+    );
+    expect(houseBadges).toContain("ที่ดิน 65 ตร.วา");
+    expect(houseBadges).toContain("2 ชั้น");
+    expect(houseBadges.some((b) => b.includes("ชั้น 18"))).toBe(false);
+
+    const shophouseBadges = buildPortalCardBadges(
+      {
+        ...FALLBACK_LISTINGS[0]!.asset,
+        category: "COMMERCIAL",
+        areaSqm: 240,
+        attributes: { bays: 2, stories: 4, hasMezzanine: true, frontageM: 8, depthM: 12 },
+      },
+      "th",
+    );
+    expect(shophouseBadges).toContain("2 คูหา");
+    expect(shophouseBadges).toContain("4 ชั้น + ชั้นลอย");
+    expect(shophouseBadges).toContain("กว้าง 8x12 ม.");
+
+    const landAttrs = formatPortalAttributeEntries(
+      { land: { rai: 2, ngan: 1, sqWah: 0 }, titleDeedType: "CHANOTE", frontageM: 30, zoning: "สีเหลือง" },
+      "th",
+    );
+    expect(landAttrs).toContain("ขนาดที่ดิน: 2 ไร่ 1 งาน");
+    expect(landAttrs).toContain("เอกสารสิทธิ์: โฉนดครุฑแดง (น.ส.4 จ.)");
   });
 });

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { dictionaries, type Locale } from "@/i18n/dictionaries";
+import { buildPortalCardBadges, getPortalCategoryLabel } from "@/lib/category-specs";
 import type { PublicListingItem } from "@/lib/public-api";
 
 export const FAVORITES_STORAGE_KEY = "rrs_portal_favorites_v1";
@@ -63,6 +64,8 @@ export function ListingCard({ item, locale }: { item: PublicListingItem; locale:
   };
 
   const coverMedia = item.asset.media.find((m) => m.isCover) ?? item.asset.media[0] ?? null;
+  const catLabel = getPortalCategoryLabel(item.asset.category, locale, d);
+  const badges = buildPortalCardBadges(item.asset, locale);
 
   return (
     <article
@@ -72,7 +75,6 @@ export function ListingCard({ item, locale }: { item: PublicListingItem; locale:
       <div>
         {coverMedia && (
           <Link href={`/${locale}/listings/${item.slug}`} className="relative mb-3 block overflow-hidden rounded-xl border border-slate-100">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={coverMedia.url}
               alt={coverMedia.caption ?? title}
@@ -87,7 +89,7 @@ export function ListingCard({ item, locale }: { item: PublicListingItem; locale:
         )}
         <div className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold">
           <span className="rounded-full bg-teal-50 px-2.5 py-1 text-lagoon">
-            {item.type === "RENT" ? d.txRent : d.txSale} · {item.asset.category}
+            {item.type === "RENT" ? d.txRent : d.txSale} · {catLabel}
           </span>
           <span className="font-mono text-slate-500">{item.asset.code}</span>
         </div>
@@ -106,14 +108,13 @@ export function ListingCard({ item, locale }: { item: PublicListingItem; locale:
           {item.price.toLocaleString()} <span className="text-xs font-normal text-slate-600">{priceSuffix}</span>
         </p>
 
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
-          {item.asset.areaSqm !== null && <span>{item.asset.areaSqm} sqm</span>}
-          {item.asset.bedrooms !== null && (
-            <span>
-              {item.asset.bedrooms} {d.specBedrooms}
+        <div className="mt-3 flex flex-wrap gap-1.5 text-xs text-slate-700">
+          {badges.slice(0, 4).map((b) => (
+            <span key={b} className="rounded-md bg-slate-100 px-2 py-0.5 font-medium">
+              {b}
             </span>
-          )}
-          {item.asset.petAllowed && <span className="text-emerald-700">✓ {d.specPet}</span>}
+          ))}
+          {item.asset.petAllowed && <span className="rounded-md bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">✓ {d.specPet}</span>}
         </div>
       </div>
 

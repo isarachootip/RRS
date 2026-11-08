@@ -1,7 +1,15 @@
 import type { Prisma } from "@rrs/db";
 import type { PublicListingCardDto, PublicListingLocationDto } from "./listings.types";
 
-const APPROXIMATE_LOCATION_CATEGORIES = new Set(["HOUSE", "TOWNHOME", "LAND"]);
+const APPROXIMATE_LOCATION_CATEGORIES = new Set([
+  "HOUSE",
+  "TOWNHOME",
+  "COMMERCIAL",
+  "LAND",
+  "FACTORY",
+  "WAREHOUSE",
+  "APARTMENT_BUILDING",
+]);
 const FORBIDDEN_ATTRIBUTE_KEYS = new Set([
   "deedNo",
   "unitNo",

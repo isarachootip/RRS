@@ -6,47 +6,25 @@ import { useEffect, useState } from "react";
 import { type MessageKey, t } from "@/i18n/th";
 import { api, uploadEntityFile } from "@/lib/api";
 import { AssetLocationMediaFields, type AssetLocationState } from "./asset-location-media-fields";
+import {
+  AssetUnitSpecFields,
+  type AssetUnitSpecState,
+  type EditableAsset,
+  defaultUnitSpecsForCategory,
+  hasUsableAreaField,
+  initLoc,
+  initSpec,
+  isVerticalUnitCategory,
+  unitNoLabelForCategory,
+} from "./asset-unit-spec-fields";
 import { CategoryAttributesFields, defaultAttributesForCategory } from "./category-attributes-fields";
+
+export type { EditableAsset };
 
 interface OwnerOption {
   id: string;
   code: string;
   fullName: string;
-}
-
-export interface EditableAsset {
-  id?: string;
-  code?: string;
-  category?: AssetCategory | string;
-  ownershipType?: "OWNER" | "AGENT";
-  ownerId?: string | null;
-  projectId?: string | null;
-  unitNo?: string | null;
-  tower?: string | null;
-  floor?: number | null;
-  address?: string | null;
-  district?: string | null;
-  province?: string | null;
-  latitude?: string | number | null;
-  longitude?: string | number | null;
-  areaSqm?: string | number | null;
-  rentPrice?: string | number | null;
-  minRentPrice?: string | number | null;
-  salePrice?: string | number | null;
-  attributes?: Record<string, unknown> | null;
-}
-
-function initLoc(initial?: EditableAsset | null): AssetLocationState {
-  return {
-    projectId: initial?.projectId ?? "",
-    tower: initial?.tower ?? "",
-    floor: initial?.floor != null ? String(initial.floor) : "",
-    address: initial?.address ?? "",
-    district: initial?.district ?? "",
-    province: initial?.province ?? "",
-    latitude: initial?.latitude != null ? String(initial.latitude) : "",
-    longitude: initial?.longitude != null ? String(initial.longitude) : "",
-  };
 }
 
 export function AssetFormModal({
@@ -68,6 +46,7 @@ export function AssetFormModal({
   const [minRentPrice, setMinRentPrice] = useState(initial?.minRentPrice != null ? String(initial.minRentPrice) : "14000");
   const [salePrice, setSalePrice] = useState(initial?.salePrice != null ? String(initial.salePrice) : "");
   const [loc, setLoc] = useState<AssetLocationState>(() => initLoc(initial));
+  const [unitSpec, setUnitSpec] = useState<AssetUnitSpecState>(() => initSpec(initial, initCat));
   const [pendingPhotos, setPendingPhotos] = useState<File[]>([]);
   const [attributes, setAttributes] = useState<Record<string, unknown>>(
     () => (initial?.attributes as Record<string, unknown>) ?? defaultAttributesForCategory(initCat),
@@ -86,21 +65,22 @@ export function AssetFormModal({
       .then((full) => {
         if (!full?.id) return;
         setLoc(initLoc(full));
+        setUnitSpec(initSpec(full, (full.category as AssetCategory) ?? initCat));
         if (full.attributes) setAttributes(full.attributes);
       })
       .catch(() => {});
-  }, [initial?.id]);
+  }, [initial?.id, initCat]);
 
   function handleCategoryChange(nextCat: AssetCategory) {
     setCategory(nextCat);
     setAttributes(defaultAttributesForCategory(nextCat));
+    setUnitSpec(defaultUnitSpecsForCategory(nextCat));
     setErrorMsg(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg(null);
-
     let parsedAttrs: unknown;
     try {
       parsedAttrs = parseAssetAttributes(category, attributes);
@@ -111,20 +91,26 @@ export function AssetFormModal({
 
     setSaving(true);
     try {
+      const isVertical = isVerticalUnitCategory(category);
       const payload = {
         category,
         ownershipType,
         ownerId: ownershipType === "AGENT" ? ownerId || undefined : undefined,
         projectId: loc.projectId || null,
         unitNo: unitNo.trim() || null,
-        tower: loc.tower.trim() || null,
-        floor: loc.floor !== "" ? Number(loc.floor) : null,
+        tower: isVertical ? loc.tower.trim() || null : null,
+        floor: isVertical && loc.floor !== "" ? Number(loc.floor) : null,
         address: loc.address.trim() || null,
         district: loc.district.trim() || null,
         province: loc.province.trim() || null,
         latitude: loc.latitude !== "" ? Number(loc.latitude) : null,
         longitude: loc.longitude !== "" ? Number(loc.longitude) : null,
-        areaSqm: areaSqm ? Number(areaSqm) : null,
+        areaSqm: hasUsableAreaField(category) && areaSqm ? Number(areaSqm) : null,
+        roomType: isVertical && unitSpec.roomType ? unitSpec.roomType : null,
+        bedrooms: unitSpec.bedrooms !== "" ? Number(unitSpec.bedrooms) : null,
+        bathrooms: unitSpec.bathrooms !== "" ? Number(unitSpec.bathrooms) : null,
+        furniture: unitSpec.furniture.trim() || null,
+        petAllowed: unitSpec.petAllowed,
         rentPrice: rentPrice ? Number(rentPrice) : null,
         minRentPrice: minRentPrice ? Number(minRentPrice) : null,
         salePrice: salePrice ? Number(salePrice) : null,
@@ -156,6 +142,8 @@ export function AssetFormModal({
   }
 
   const inputCls = "w-full rounded-md border border-line bg-surface px-3 py-2 text-sm";
+  const unitMeta = unitNoLabelForCategory(category);
+  const showArea = hasUsableAreaField(category);
 
   return (
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -185,14 +173,23 @@ export function AssetFormModal({
               </select>
             </label>
           )}
-          <label className="space-y-1 text-xs font-medium text-ink"><span>เลขห้อง / บ้านเลขที่</span><input aria-label="เลขห้องหรือบ้านเลขที่" value={unitNo} onChange={(e) => setUnitNo(e.target.value)} placeholder="เช่น 1205 หรือ 99/12" className={inputCls} /></label>
-          <label className="space-y-1 text-xs font-medium text-ink"><span>พื้นที่ใช้สอย (ตร.ม.)</span><input type="number" step="0.01" aria-label="พื้นที่ใช้สอย" value={areaSqm} onChange={(e) => setAreaSqm(e.target.value)} className={inputCls} /></label>
+          <label className={`space-y-1 text-xs font-medium text-ink ${showArea ? "" : "sm:col-span-2"}`}>
+            <span>{unitMeta.label}</span>
+            <input aria-label="เลขห้องหรือบ้านเลขที่" value={unitNo} onChange={(e) => setUnitNo(e.target.value)} placeholder={unitMeta.placeholder} className={inputCls} />
+          </label>
+          {showArea && (
+            <label className="space-y-1 text-xs font-medium text-ink">
+              <span>พื้นที่ใช้สอยรวม (ตร.ม.)</span>
+              <input type="number" step="0.01" aria-label="พื้นที่ใช้สอย" value={areaSqm} onChange={(e) => setAreaSqm(e.target.value)} className={inputCls} />
+            </label>
+          )}
           <label className="space-y-1 text-xs font-medium text-ink"><span>ราคาเช่าต่อเดือน (บาท)</span><input type="number" aria-label="ราคาเช่าต่อเดือน" value={rentPrice} onChange={(e) => setRentPrice(e.target.value)} className={inputCls} /></label>
           <label className="space-y-1 text-xs font-medium text-ink"><span>ราคาเช่าต่ำสุดที่อนุมัติ (บาท)</span><input type="number" aria-label="ราคาเช่าต่ำสุดที่อนุมัติ" value={minRentPrice} onChange={(e) => setMinRentPrice(e.target.value)} className={inputCls} /></label>
           <label className="space-y-1 text-xs font-medium text-ink sm:col-span-2"><span>ราคาขาย (บาท) — เว้นว่างหากปล่อยเช่าอย่างเดียว</span><input type="number" aria-label="ราคาขาย" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="เช่น 3500000" className={inputCls} /></label>
         </div>
-        <AssetLocationMediaFields loc={loc} onChange={(patch) => setLoc((prev) => ({ ...prev, ...patch }))} pendingPhotos={pendingPhotos} onPendingPhotosChange={setPendingPhotos} />
+        <AssetUnitSpecFields category={category} spec={unitSpec} onChange={(patch) => setUnitSpec((prev) => ({ ...prev, ...patch }))} />
         <CategoryAttributesFields category={category} values={attributes} onChange={setAttributes} />
+        <AssetLocationMediaFields category={category} loc={loc} onChange={(patch) => setLoc((prev) => ({ ...prev, ...patch }))} pendingPhotos={pendingPhotos} onPendingPhotosChange={setPendingPhotos} />
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="rounded-md border border-line px-4 py-2 text-xs text-ink">{t("archive.cancel")}</button>
           <button type="submit" disabled={saving} className="rounded-md bg-brand px-4 py-2 text-xs font-medium text-white disabled:opacity-50">บันทึกทรัพย์สิน</button>

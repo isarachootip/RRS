@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   abbreviateName,
+  buildCategoryHighlights,
   DEFAULT_ROLE_PERMISSIONS,
   formatBahtFromSatang,
   formatDecimalBaht,
+  formatLandSizeText,
   fromSatang,
+  generateListingDraft,
   maskPhone,
   normalizePhone,
   parseAssetAttributes,
@@ -63,6 +66,75 @@ describe("asset attributes", () => {
 
   it("ห้องอพาร์ตเมนต์ default ไม่ให้เช่ารายวัน", () => {
     expect(parseAssetAttributes("APARTMENT_UNIT", {}).allowsDailyRent).toBe(false);
+  });
+
+  it("อาคารพาณิชย์/ห้องแถว (COMMERCIAL) รองรับจำนวนคูหา ชั้นลอย และหน้ากว้างxลึก", () => {
+    const c = parseAssetAttributes("COMMERCIAL", {
+      bays: 2,
+      stories: 4,
+      hasMezzanine: true,
+      frontageM: 8,
+      depthM: 12,
+      parkingSlots: 3,
+      land: { rai: 0, ngan: 0, sqWah: 44 },
+    });
+    expect(c.bays).toBe(2);
+    expect(c.hasMezzanine).toBe(true);
+    expect(c.depthM).toBe(12);
+  });
+
+  it("สร้างไฮไลท์และคำโปรยประกาศแยกตามประเภททรัพย์ (CONDO vs HOUSE vs COMMERCIAL vs LAND)", () => {
+    expect(formatLandSizeText({ rai: 1, ngan: 2, sqWah: 50 }, "th")).toBe("1 ไร่ 2 งาน 50 ตร.วา");
+    expect(formatLandSizeText({ rai: 0, ngan: 0, sqWah: 55 }, "th")).toBe("55 ตร.วา");
+
+    const condoBadges = buildCategoryHighlights(
+      {
+        category: "CONDO",
+        areaSqm: 58,
+        floor: 31,
+        tower: "B",
+        bedrooms: 2,
+        bathrooms: 2,
+        attributes: { facing: "ทิศเหนือ", parkingSlots: 1 },
+      },
+      "th",
+    );
+    expect(condoBadges).toContain("58 ตร.ม.");
+    expect(condoBadges).toContain("ชั้น 31");
+    expect(condoBadges).toContain("2 ห้องนอน");
+
+    const commercialBadges = buildCategoryHighlights(
+      {
+        category: "COMMERCIAL",
+        areaSqm: 240,
+        attributes: { bays: 2, stories: 3, hasMezzanine: true, frontageM: 8, depthM: 12 },
+      },
+      "th",
+    );
+    expect(commercialBadges).toContain("2 คูหา");
+    expect(commercialBadges).toContain("3 ชั้น + ชั้นลอย");
+    expect(commercialBadges).toContain("กว้าง 8x12 ม.");
+
+    const houseDraft = generateListingDraft(
+      {
+        code: "PR-000016",
+        category: "HOUSE",
+        district: "บางนา",
+        province: "กรุงเทพมหานคร",
+        areaSqm: 220,
+        bedrooms: 4,
+        bathrooms: 3,
+        rentPrice: 45000,
+        salePrice: 8900000,
+        project: { name: "เศรษฐสิริ บางนา" },
+        attributes: { land: { rai: 0, ngan: 0, sqWah: 65 }, stories: 2, parkingSlots: 2 },
+      },
+      "SALE",
+    );
+    expect(houseDraft.suggestedPrice).toBe(8900000);
+    expect(houseDraft.titleTh).toContain("บ้านเดี่ยว");
+    expect(houseDraft.titleTh).toContain("65 ตร.วา");
+    expect(houseDraft.descriptionTh).toContain("2 ชั้น");
   });
 });
 

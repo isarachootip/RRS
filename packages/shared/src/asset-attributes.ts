@@ -92,6 +92,7 @@ const land = z
     land: landSize,
     titleDeedType: z.enum(["CHANOTE", "NOR_SOR_3_GOR", "NOR_SOR_3", "SOR_POR_KOR", "OTHER"]),
     frontageM: positive.optional(),
+    depthM: positive.optional(),
     zoning: z.string().max(50).optional(),
     roadAccess: z.string().max(100).optional(),
   })
@@ -100,8 +101,11 @@ const land = z
 const commercial = z
   .object({
     land: landSize.optional(),
+    bays: z.number().int().min(1).max(20).optional(),
     stories: z.number().int().min(1).max(50),
+    hasMezzanine: z.boolean().optional(),
     frontageM: positive.optional(),
+    depthM: positive.optional(),
     parkingSlots: z.number().int().nonnegative().optional(),
   })
   .strict();
