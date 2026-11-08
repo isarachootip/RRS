@@ -47,6 +47,9 @@ services:
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-rrs-production-jwt-access-secret-key-2026-min32chars}
       TOTP_ENCRYPTION_KEY: ${TOTP_ENCRYPTION_KEY:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      UPLOAD_DIR: /var/lib/rrs/uploads
+    volumes:
+      - uploads_coolify:/var/lib/rrs/uploads
     expose:
       - "4000"
 
@@ -85,3 +88,4 @@ services:
 volumes:
   pgdata_coolify:
   redisdata_coolify:
+  uploads_coolify:

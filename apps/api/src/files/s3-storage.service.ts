@@ -44,13 +44,12 @@ export class S3StorageService {
         await this.client.send(new CreateBucketCommand({ Bucket: this.bucket }));
         this.bucketReady = true;
       } catch {
-        // Fallback to local disk storage when S3/MinIO is not running
+        // Fallback to local disk / DB storage when S3/MinIO is not running
       }
     }
   }
 
-  async putObject(key: string, body: Buffer, contentType: string): Promise<void> {
-    this.storedKeys.add(key);
+  async writeLocalCache(key: string, body: Buffer): Promise<void> {
     try {
       const targetPath = join(this.localDir, key);
       await mkdir(dirname(targetPath), { recursive: true });
@@ -58,6 +57,11 @@ export class S3StorageService {
     } catch {
       // Ignore local disk write error if read-only fs
     }
+  }
+
+  async putObject(key: string, body: Buffer, contentType: string): Promise<void> {
+    this.storedKeys.add(key);
+    await this.writeLocalCache(key, body);
     await this.ensureBucket();
     try {
       await this.client.send(
@@ -69,13 +73,26 @@ export class S3StorageService {
         }),
       );
     } catch {
-      // Local disk fallback already stored the file
+      // Local disk and PostgreSQL DB storage already saved the file
     }
   }
 
   async readLocalObject(key: string): Promise<Buffer | null> {
     try {
       return await readFile(join(this.localDir, key));
+    } catch {
+      return null;
+    }
+  }
+
+  async readS3Object(key: string): Promise<Buffer | null> {
+    try {
+      const out = await this.client.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+      if (!out.Body) return null;
+      const bytes = await out.Body.transformToByteArray();
+      const buf = Buffer.from(bytes);
+      await this.writeLocalCache(key, buf);
+      return buf;
     } catch {
       return null;
     }

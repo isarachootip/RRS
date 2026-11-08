@@ -23,6 +23,9 @@ if [ -z "${DATABASE_URL}" ]; then
   su-exec postgres psql -h 127.0.0.1 -U rrs -d rrs -c 'CREATE EXTENSION IF NOT EXISTS "btree_gist"; CREATE EXTENSION IF NOT EXISTS "pg_trgm";' || true
 
   export DATABASE_URL="postgresql://rrs:rrs@127.0.0.1:5432/rrs?schema=public"
+else
+  echo "==> [RRS All-in-One] Using external DATABASE_URL — ensuring PostgreSQL extensions..."
+  psql "${DATABASE_URL}" -c 'CREATE EXTENSION IF NOT EXISTS "btree_gist"; CREATE EXTENSION IF NOT EXISTS "pg_trgm";' || true
 fi
 
 # 2. Start embedded Redis if REDIS_URL is not externally provided

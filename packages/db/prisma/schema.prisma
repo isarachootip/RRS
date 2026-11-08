@@ -1256,6 +1256,7 @@ model File {
   originalName String    @map("original_name")
   mimeType     String    @map("mime_type")
   sizeBytes    Int       @map("size_bytes")
+  content      Bytes?
   entityType   String?   @map("entity_type")
   entityId     String?   @map("entity_id") @db.Uuid
   uploadedById String?   @map("uploaded_by_id") @db.Uuid

@@ -10,9 +10,21 @@ export const SIGNED_URL_TTL_SECONDS = 300;
 const ALLOWED_IMAGE_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const ALLOWED_MIMES = new Set([...ALLOWED_IMAGE_MIMES, "application/pdf"]);
 
+const FILE_META_SELECT = {
+  id: true,
+  storageKey: true,
+  originalName: true,
+  mimeType: true,
+  sizeBytes: true,
+  entityType: true,
+  entityId: true,
+  uploadedById: true,
+  createdAt: true,
+  archivedAt: true,
+} as const;
+
 function hasValidMagicBytes(buf: Buffer, mimeType: string): boolean {
   if (buf.length < 4) return false;
-  // ปฏิเสธไฟล์ executable เสมอ (MZ header)
   if (buf[0] === 0x4d && buf[1] === 0x5a) return false;
   if (mimeType === "application/pdf") {
     return buf.subarray(0, 4).toString("ascii") === "%PDF";
@@ -82,10 +94,12 @@ export class FilesService {
         originalName: params.originalName,
         mimeType: params.mimeType,
         sizeBytes: params.sizeBytes,
+        content: new Uint8Array(params.buffer),
         entityType: params.entityType ?? null,
         entityId: params.entityId ?? null,
         uploadedById: params.actorId,
       },
+      select: FILE_META_SELECT,
     });
 
     return {
@@ -97,13 +111,14 @@ export class FilesService {
   async listByEntity(entityType: string, entityId: string) {
     const items = await this.prisma.file.findMany({
       where: { entityType, entityId, archivedAt: null },
+      select: FILE_META_SELECT,
       orderBy: { createdAt: "desc" },
     });
     return { items };
   }
 
   async getSignedUrls(id: string) {
-    const file = await this.prisma.file.findUnique({ where: { id } });
+    const file = await this.prisma.file.findUnique({ where: { id }, select: FILE_META_SELECT });
     if (!file || file.archivedAt) {
       throw new NotFoundException({ code: "FILE_NOT_FOUND", message: "ไม่พบไฟล์นี้" });
     }
@@ -135,7 +150,14 @@ export class FilesService {
     if (!file || file.archivedAt) {
       throw new NotFoundException({ code: "FILE_NOT_FOUND", message: "ไม่พบไฟล์นี้" });
     }
-    const buffer = await this.s3.readLocalObject(file.storageKey);
+    let buffer = await this.s3.readLocalObject(file.storageKey);
+    if (!buffer && file.content) {
+      buffer = Buffer.from(file.content);
+      await this.s3.writeLocalCache(file.storageKey, buffer);
+    }
+    if (!buffer) {
+      buffer = await this.s3.readS3Object(file.storageKey);
+    }
     if (!buffer) {
       throw new NotFoundException({ code: "FILE_CONTENT_NOT_FOUND", message: "ไม่พบเนื้อหาไฟล์บนเซิร์ฟเวอร์" });
     }
@@ -143,13 +165,14 @@ export class FilesService {
   }
 
   async archive(id: string) {
-    const file = await this.prisma.file.findUnique({ where: { id } });
+    const file = await this.prisma.file.findUnique({ where: { id }, select: FILE_META_SELECT });
     if (!file || file.archivedAt) {
       throw new NotFoundException({ code: "FILE_NOT_FOUND", message: "ไม่พบไฟล์นี้" });
     }
     return this.prisma.file.update({
       where: { id },
       data: { archivedAt: new Date() },
+      select: FILE_META_SELECT,
     });
   }
 }

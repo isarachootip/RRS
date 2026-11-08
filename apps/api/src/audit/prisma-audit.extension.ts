@@ -35,6 +35,7 @@ const REDACTED_KEYS = new Set([
   "consentText",
   "coordinatorName",
   "coordinatorPhone",
+  "content",
 ]);
 const JSON_COLUMNS = new Set(["attributes", "commissionParams", "notificationPrefs", "timing"]);
 

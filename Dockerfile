@@ -4,11 +4,15 @@
 # - rrs.tamadee.online       -> Backoffice Web (:3002)
 # - portalrrs.tamadee.online -> Public Portal (:3001)
 # - /api/* and /health       -> NestJS Backend API (:4000)
+#
+# Persistent Data & Uploads:
+# - Mount Coolify Persistent Storage to: /var/lib/postgresql/data
+# - Or set external DATABASE_URL in Coolify Environment Variables
 # ==============================================================================
 FROM node:22-alpine
 RUN apk add --no-cache openssl postgresql postgresql-client postgresql-contrib redis su-exec && \
     corepack enable && corepack prepare pnpm@10.18.0 --activate && \
-    mkdir -p /run/postgresql /var/log/postgresql /var/lib/postgresql/data && \
+    mkdir -p /run/postgresql /var/log/postgresql /var/lib/postgresql/data/uploads && \
     chown -R postgres:postgres /run/postgresql /var/log/postgresql /var/lib/postgresql/data
 
 WORKDIR /app
@@ -35,6 +39,9 @@ ENV PORT=3000
 ENV API_PORT=4000
 ENV PORTAL_PORT=3001
 ENV WEB_PORT=3002
+ENV UPLOAD_DIR=/var/lib/postgresql/data/uploads
+
+VOLUME ["/var/lib/postgresql/data"]
 
 EXPOSE 3000
 CMD ["/bin/sh", "/app/scripts/start-all-in-one.sh"]
