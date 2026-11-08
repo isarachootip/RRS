@@ -2,9 +2,24 @@
 
 echo "==> [RRS All-in-One] Starting RRS Platform..."
 
-# 1. Start embedded PostgreSQL if DATABASE_URL is not externally provided
+USE_EMBEDDED_PG=0
 if [ -z "${DATABASE_URL}" ]; then
-  echo "==> [RRS All-in-One] Initializing embedded PostgreSQL..."
+  USE_EMBEDDED_PG=1
+else
+  PSQL_CHECK_URL=$(echo "${DATABASE_URL}" | sed 's/[?&]schema=[^&]*//g')
+  echo "==> [RRS All-in-One] Testing connection to external DATABASE_URL..."
+  if su-exec postgres psql "${PSQL_CHECK_URL}" -c "SELECT 1;" >/dev/null 2>&1; then
+    echo "==> [RRS All-in-One] External PostgreSQL connected successfully!"
+    su-exec postgres psql "${PSQL_CHECK_URL}" -c 'CREATE EXTENSION IF NOT EXISTS "btree_gist"; CREATE EXTENSION IF NOT EXISTS "pg_trgm";' || true
+  else
+    echo "==> [RRS All-in-One] WARN: Cannot reach external DATABASE_URL (check Coolify 'Connect to Predefined Network'). Falling back to persistent /var/lib/postgresql/data..."
+    USE_EMBEDDED_PG=1
+  fi
+fi
+
+# 1. Start embedded PostgreSQL if DATABASE_URL is not provided or unreachable
+if [ "${USE_EMBEDDED_PG}" = "1" ]; then
+  echo "==> [RRS All-in-One] Initializing persistent PostgreSQL on /var/lib/postgresql/data..."
   PGDATA="/var/lib/postgresql/data/pgdata"
   mkdir -p /run/postgresql /var/log/postgresql "${PGDATA}"
   chown -R postgres:postgres /run/postgresql /var/log/postgresql /var/lib/postgresql/data
@@ -23,9 +38,6 @@ if [ -z "${DATABASE_URL}" ]; then
   su-exec postgres psql -h 127.0.0.1 -U rrs -d rrs -c 'CREATE EXTENSION IF NOT EXISTS "btree_gist"; CREATE EXTENSION IF NOT EXISTS "pg_trgm";' || true
 
   export DATABASE_URL="postgresql://rrs:rrs@127.0.0.1:5432/rrs?schema=public"
-else
-  echo "==> [RRS All-in-One] Using external DATABASE_URL — ensuring PostgreSQL extensions..."
-  psql "${DATABASE_URL}" -c 'CREATE EXTENSION IF NOT EXISTS "btree_gist"; CREATE EXTENSION IF NOT EXISTS "pg_trgm";' || true
 fi
 
 # 2. Start embedded Redis if REDIS_URL is not externally provided
