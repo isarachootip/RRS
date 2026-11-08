@@ -110,14 +110,60 @@ export interface UploadedFileRecord {
   entityId: string | null;
 }
 
-/** อัปโหลดไฟล์สแกนเอกสารหรือรูปภาพไปยัง /api/v1/files */
+export const MAX_IMAGE_UPLOAD_BYTES = 1024 * 1024; // 1 MB
+
+/** ย่อรูปภาพฝั่งเบราว์เซอร์ให้ขนาดไม่เกิน 1 MB ก่อนอัปโหลด */
+export async function resizeImageFileUnderOneMb(file: File): Promise<File> {
+  if (
+    !file.type.startsWith("image/") ||
+    file.size <= MAX_IMAGE_UPLOAD_BYTES ||
+    typeof document === "undefined" ||
+    typeof createImageBitmap !== "function"
+  ) {
+    return file;
+  }
+  try {
+    const bitmap = await createImageBitmap(file);
+    const outType = file.type === "image/webp" ? "image/webp" : "image/jpeg";
+    const steps = [
+      { maxDim: 1920, quality: 0.82 },
+      { maxDim: 1600, quality: 0.74 },
+      { maxDim: 1280, quality: 0.66 },
+      { maxDim: 1024, quality: 0.56 },
+    ];
+    let lastBlob: Blob | null = null;
+    for (const step of steps) {
+      const ratio = Math.min(1, step.maxDim / Math.max(bitmap.width, bitmap.height, 1));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * ratio));
+      canvas.height = Math.max(1, Math.round(bitmap.height * ratio));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) break;
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, outType, step.quality));
+      if (!blob) continue;
+      lastBlob = blob;
+      if (blob.size <= MAX_IMAGE_UPLOAD_BYTES) break;
+    }
+    bitmap.close?.();
+    if (!lastBlob) return file;
+    const ext = outType === "image/webp" ? "webp" : "jpg";
+    const nextName = file.name.replace(/\.[^.]+$/, `.${ext}`);
+    return new File([lastBlob], nextName, { type: outType, lastModified: Date.now() });
+  } catch {
+    return file;
+  }
+}
+
+/** อัปโหลดไฟล์สแกนเอกสารหรือรูปภาพไปยัง /api/v1/files (ย่อรูปไม่เกิน 1 MB อัตโนมัติ) */
 export async function uploadEntityFile(
   file: File,
   entityType?: string,
   entityId?: string,
 ): Promise<UploadedFileRecord> {
+  const readyFile = await resizeImageFileUnderOneMb(file);
   const fd = new FormData();
-  fd.append("file", file);
+  fd.append("file", readyFile);
   if (entityType) fd.append("entityType", entityType);
   if (entityId) fd.append("entityId", entityId);
   return api<UploadedFileRecord>("/api/v1/files", { method: "POST", body: fd });

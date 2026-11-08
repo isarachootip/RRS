@@ -2,7 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import type { AssetCategory } from "@rrs/shared";
-import { api } from "@/lib/api";
+import { api, resizeImageFileUnderOneMb } from "@/lib/api";
 import { isVerticalUnitCategory } from "./asset-unit-spec-fields";
 import { GoogleLocationPicker, parseGoogleMapsCoords } from "./google-location-picker";
 
@@ -50,12 +50,13 @@ export function AssetLocationMediaFields({
   const selectedProjectName = (projectsData?.items ?? []).find((p) => p.id === loc.projectId)?.name ?? "";
   const defaultMapQuery = [selectedProjectName, loc.address, loc.district, loc.province].filter(Boolean).join(" ");
 
-  function handleSelectFiles(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleSelectFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const selected = Array.from(e.target.files ?? []);
-    if (selected.length > 0) {
-      onPendingPhotosChange([...pendingPhotos, ...selected]);
-    }
     e.target.value = "";
+    if (selected.length > 0) {
+      const resized = await Promise.all(selected.map((f) => resizeImageFileUnderOneMb(f)));
+      onPendingPhotosChange([...pendingPhotos, ...resized]);
+    }
   }
 
   const inputCls = "w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink";
@@ -121,11 +122,11 @@ export function AssetLocationMediaFields({
             <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
               รูปภาพทรัพย์สิน และสถานที่จริง (Property & Place Photos)
             </h3>
-            <p className="text-xs text-ink-muted">เลือกรูปภาพทรัพย์สิน อาคาร หรือสถานที่จริง (JPG, PNG, WEBP เลือกได้หลายรูป)</p>
+            <p className="text-xs text-ink-muted">เลือกรูปภาพทรัพย์สิน อาคาร หรือสถานที่จริง (JPG, PNG, WEBP — ย่อขนาดไม่เกิน 1 MB อัตโนมัติ)</p>
           </div>
           <label className="cursor-pointer rounded-md bg-brand px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
             + เลือกรูปภาพห้อง/สถานที่
-            <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={handleSelectFiles} className="hidden" />
+            <input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={(e) => void handleSelectFiles(e)} className="hidden" />
           </label>
         </div>
         {pendingPhotos.length > 0 && (

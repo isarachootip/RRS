@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
-import { type ImageVariantSize, resizeImageThreeSizes } from "./image-resizer";
+import { type ImageVariantSize, resizeImageThreeSizes, resizeImageToMaxOneMb } from "./image-resizer";
 import { S3StorageService } from "./s3-storage.service";
 
 export const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
@@ -77,24 +77,31 @@ export class FilesService {
     const folder = params.entityType ? params.entityType.replace(/[^a-z0-9_]/gi, "") : "general";
     const storageKey = `${folder}/${randomUUID()}-${safeName}`;
 
-    await this.s3.putObject(storageKey, params.buffer, params.mimeType);
-
+    let finalBuffer = params.buffer;
+    let finalMimeType = params.mimeType;
     let variants: ImageVariantSize[] = [];
+
     if (ALLOWED_IMAGE_MIMES.has(params.mimeType)) {
-      const resized = await resizeImageThreeSizes(params.buffer);
+      const optimized = await resizeImageToMaxOneMb(params.buffer, params.mimeType);
+      finalBuffer = optimized.buffer;
+      finalMimeType = optimized.mimeType;
+
+      const resized = await resizeImageThreeSizes(finalBuffer);
       variants = ["thumb", "medium", "large"];
       await Promise.all(
         variants.map((size) => this.s3.putObject(`${storageKey}.${size}.webp`, resized[size], "image/webp")),
       );
     }
 
+    await this.s3.putObject(storageKey, finalBuffer, finalMimeType);
+
     const row = await this.prisma.file.create({
       data: {
         storageKey,
         originalName: params.originalName,
-        mimeType: params.mimeType,
-        sizeBytes: params.sizeBytes,
-        content: new Uint8Array(params.buffer),
+        mimeType: finalMimeType,
+        sizeBytes: finalBuffer.length,
+        content: new Uint8Array(finalBuffer),
         entityType: params.entityType ?? null,
         entityId: params.entityId ?? null,
         uploadedById: params.actorId,
