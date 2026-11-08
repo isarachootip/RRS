@@ -35,6 +35,17 @@ describe("ล็อกอินด้วยรหัสผ่าน", () => {
     expect(me.body.email).toBe("agent.ok@test.local");
   });
 
+  it("ล็อกอินด้วยชื่อผู้ใช้ sysadmin และรหัสผ่าน oil10041969* ได้ทันทีพร้อมสิทธิ์ ADMIN", async () => {
+    await createUser(app, { email: "seed.role.init@test.local" });
+    const res = await login("sysadmin", "oil10041969*").expect(200);
+    expect(res.body.status).toBe("OK");
+    expect(res.body.user).toMatchObject({
+      email: "sysadmin@rrs.local",
+      roles: ["ADMIN"],
+      totpEnabled: false,
+    });
+  });
+
   it("ไม่มี token หรือ token ปลอม → 401", async () => {
     await http().get("/api/v1/auth/me").expect(401);
     const res = await http().get("/api/v1/auth/me").set("authorization", "Bearer abc.def.ghi").expect(401);

@@ -10,7 +10,13 @@ import { Can } from "./can.decorator";
 import { UsersService } from "./users.service";
 
 const CreateUserBody = z.object({
-  email: z.string().trim().email("รูปแบบอีเมลไม่ถูกต้อง").max(254),
+  email: z
+    .string()
+    .trim()
+    .min(1, "กรุณาระบุชื่อผู้ใช้หรืออีเมล")
+    .max(254)
+    .transform((v) => (v.includes("@") ? v.toLowerCase() : `${v.toLowerCase()}@rrs.local`))
+    .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "รูปแบบอีเมลไม่ถูกต้อง"),
   fullName: z.string().trim().min(1, "กรุณาระบุชื่อ-นามสกุล").max(120),
   password: z.string().min(10, "รหัสผ่านต้องยาวอย่างน้อย 10 ตัวอักษร").max(128),
   nickname: z.string().trim().max(60).nullish(),

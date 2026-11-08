@@ -17,11 +17,12 @@ export const REFRESH_COOKIE = "rrs_refresh";
 const COOKIE_PATH = "/api/v1/auth";
 
 const email = z.string().trim().email("รูปแบบอีเมลไม่ถูกต้อง").max(254);
+const loginIdentifier = z.string().trim().min(1, "กรุณาระบุชื่อผู้ใช้หรืออีเมล").max(254);
 const code = z
   .string()
   .trim()
   .regex(/^\d{6}$/, "รหัสยืนยันต้องเป็นตัวเลข 6 หลัก");
-const LoginBody = z.object({ email, password: z.string().min(1, "กรุณาใส่รหัสผ่าน").max(128) });
+const LoginBody = z.object({ email: loginIdentifier, password: z.string().min(1, "กรุณาใส่รหัสผ่าน").max(128) });
 const ChallengeBody = z.object({ challengeToken: z.string().min(1) });
 const ChallengeCodeBody = ChallengeBody.extend({ code });
 const CodeBody = z.object({ code });

@@ -75,8 +75,9 @@ export function LoginFlow({ onSuccess }: { onSuccess: (s: SessionPayload) => voi
         <Field
           id="email"
           name="email"
-          type="email"
+          type="text"
           label={t("auth.email")}
+          placeholder="เช่น sysadmin หรือ admin1@rrs.local"
           autoComplete="username"
           required
           autoFocus

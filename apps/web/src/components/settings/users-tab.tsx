@@ -140,9 +140,9 @@ export function UsersTab({ users, teams, roles }: UsersTabProps) {
           className="h-9 rounded border border-line px-3 text-sm"
         />
         <input
-          type="email"
+          type="text"
           required
-          placeholder="อีเมล"
+          placeholder="ชื่อผู้ใช้ หรือ อีเมล (เช่น sysadmin)"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="h-9 rounded border border-line px-3 text-sm"
