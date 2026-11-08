@@ -4,13 +4,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LOCALES, LOCALE_LABELS, dictionaries, type Locale } from "@/i18n/dictionaries";
+import { buildLineOaGeneralUrl, usePortalContactConfig } from "@/lib/line-oa";
 
 const COOKIE_CONSENT_KEY = "rrs_cookie_consent_v1";
 
 export function PortalHeader({ locale }: { locale: Locale }) {
   const d = dictionaries[locale];
+  const contact = usePortalContactConfig();
   const pathname = usePathname() || `/${locale}`;
   const router = useRouter();
+  const lineUrl = buildLineOaGeneralUrl(contact.lineOaId, locale);
 
   const buildPathForLocale = (targetLocale: Locale): string => {
     const segments = pathname.split("/");
@@ -47,6 +50,14 @@ export function PortalHeader({ locale }: { locale: Locale }) {
           >
             {d.navSubmitProperty}
           </Link>
+          <a
+            href={lineUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+          >
+            💬 LINE {contact.lineOaId}
+          </a>
 
           <select
             aria-label={d.switchTo}
@@ -62,6 +73,15 @@ export function PortalHeader({ locale }: { locale: Locale }) {
           </select>
         </nav>
       </div>
+      <a
+        href={lineUrl}
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Contact LINE Official Account"
+        className="fixed right-5 bottom-16 z-40 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg hover:bg-emerald-700"
+      >
+        💬 LINE OA ({contact.lineOaId})
+      </a>
     </header>
   );
 }

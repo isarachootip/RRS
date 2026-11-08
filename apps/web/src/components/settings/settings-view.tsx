@@ -8,12 +8,13 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { NotificationRulesTab } from "./notification-rules-tab";
 import { PdpaTab } from "./pdpa-tab";
+import { PortalContactTab } from "./portal-contact-tab";
 import { RolesTab } from "./roles-tab";
 import { TeamsTab } from "./teams-tab";
 import type { AdminRoleItem, AdminTeamItem, AdminUserItem, PermissionCatalogItem } from "./types";
 import { UsersTab } from "./users-tab";
 
-type TabId = "users" | "teams" | "roles" | "notifications" | "pdpa";
+type TabId = "users" | "teams" | "roles" | "notifications" | "portal" | "pdpa";
 
 export function SettingsView() {
   const { user } = useAuth();
@@ -51,6 +52,7 @@ export function SettingsView() {
     { id: "teams", label: t("settings.tab.teams") },
     { id: "roles", label: t("settings.tab.roles") },
     { id: "notifications", label: "กฎการแจ้งเตือน" },
+    { id: "portal", label: "LINE OA & หน้าเว็บ" },
     { id: "pdpa", label: "PDPA & สิทธิ์ข้อมูล" },
   ];
 
@@ -61,7 +63,7 @@ export function SettingsView() {
         <p className="mt-1 text-sm text-ink-muted">{t("settings.subtitle")}</p>
       </div>
 
-      <div role="tablist" aria-label={t("settings.title")} className="flex gap-2 border-b border-line">
+      <div role="tablist" aria-label={t("settings.title")} className="flex flex-wrap gap-2 border-b border-line">
         {tabs.map((tab) => {
           const selected = activeTab === tab.id;
           return (
@@ -93,6 +95,7 @@ export function SettingsView() {
         <RolesTab roles={rolesQuery.data?.roles ?? []} catalog={rolesQuery.data?.catalog ?? []} />
       )}
       {activeTab === "notifications" && <NotificationRulesTab />}
+      {activeTab === "portal" && <PortalContactTab />}
       {activeTab === "pdpa" && <PdpaTab />}
     </div>
   );

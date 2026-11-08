@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildPortalCardBadges, buildPortalSpecGrid, formatPortalAttributeEntries } from "@/lib/category-specs";
+import { buildLineOaPropertyMessage, buildLineOaPropertyUrl, normalizeLineOaId } from "@/lib/line-oa";
 import { FALLBACK_LISTINGS, buildListingJsonLd, fetchPublicListingBySlug, safeDecodeSlug } from "@/lib/public-api";
 import { LOCALES, LOCALE_LABELS, dictionaries, isLocale, isRtlLocale } from "./dictionaries";
 
@@ -97,5 +98,33 @@ describe("P21 Portal 7-Language Dictionaries (th, en, ru, ja, zh, ar, de) & SEO 
     );
     expect(landAttrs).toContain("ขนาดที่ดิน: 2 ไร่ 1 งาน");
     expect(landAttrs).toContain("เอกสารสิทธิ์: โฉนดครุฑแดง (น.ส.4 จ.)");
+  });
+
+  it("สร้างลิงก์ LINE OA (oaMessage) พร้อมเติมรหัสทรัพย์และรายละเอียดอัตโนมัติ", () => {
+    expect(normalizeLineOaId("tamadee")).toBe("@tamadee");
+    expect(normalizeLineOaId("@tamadee")).toBe("@tamadee");
+    expect(normalizeLineOaId("")).toBe("@rrs");
+
+    const msg = buildLineOaPropertyMessage({
+      assetCode: "PR-000013",
+      title: "คอนโด เดอะ ริเวอร์ไซด์",
+      price: 21000,
+      type: "RENT",
+      locale: "th",
+    });
+    expect(msg).toContain("PR-000013");
+    expect(msg).toContain("คอนโด เดอะ ริเวอร์ไซด์");
+    expect(msg).toContain("21,000");
+
+    const url = buildLineOaPropertyUrl({
+      lineOaId: "tamadee",
+      assetCode: "PR-000013",
+      title: "คอนโด เดอะ ริเวอร์ไซด์",
+      price: 21000,
+      type: "RENT",
+      locale: "th",
+    });
+    expect(url).toContain("https://line.me/R/oaMessage/%40tamadee/?");
+    expect(decodeURIComponent(url)).toContain("PR-000013");
   });
 });

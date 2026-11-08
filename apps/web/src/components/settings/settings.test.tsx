@@ -97,6 +97,19 @@ beforeEach(() => {
         }),
       };
     }
+    if (url.endsWith("/api/v1/public/listings/contact-config") && method === "GET") {
+      return {
+        ok: true,
+        json: async () => ({ lineOaId: "@rrs", phone: "02-000-0000", companyName: "RRS Real Estate" }),
+      };
+    }
+    if (url.endsWith("/api/v1/listings/contact-config") && method === "PUT") {
+      const body = JSON.parse(String(init?.body ?? "{}")) as { lineOaId: string; phone: string; companyName: string };
+      return {
+        ok: true,
+        json: async () => body,
+      };
+    }
     return { ok: true, json: async () => ({ ok: true }) };
   });
 });
@@ -139,5 +152,24 @@ describe("SettingsView", () => {
         expect.objectContaining({ method: "PUT" }),
       );
     });
+  });
+
+  it("Admin → เปิดแท็บ LINE OA & หน้าเว็บ เปลี่ยน LINE OA ID และบันทึกได้", async () => {
+    const user = userEvent.setup();
+    renderWithRole("ADMIN");
+    await user.click(screen.getByRole("tab", { name: "LINE OA & หน้าเว็บ" }));
+
+    const lineInput = await screen.findByLabelText("LINE OA ID องค์กร");
+    await user.clear(lineInput);
+    await user.type(lineInput, "tamadee");
+
+    await user.click(screen.getByRole("button", { name: "บันทึกการตั้งค่า LINE OA" }));
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/v1/listings/contact-config"),
+        expect.objectContaining({ method: "PUT" }),
+      );
+    });
+    expect(await screen.findByText(/บันทึกการตั้งค่า LINE OA และเบอร์ติดต่อหน้าเว็บเรียบร้อยแล้ว/)).toBeInTheDocument();
   });
 });

@@ -96,4 +96,46 @@ export class PublicListingsService {
       nearby: nearbyRows.map(toPublicListingDto),
     };
   }
+
+  async getContactConfig() {
+    const rule = await this.prisma.notificationRule.findUnique({
+      where: { event: "portal.contact_config" },
+    });
+    const cfg = (rule?.timing ?? {}) as Record<string, unknown>;
+    const rawLine = typeof cfg.lineOaId === "string" && cfg.lineOaId.trim() ? cfg.lineOaId.trim() : "@rrs";
+    return {
+      lineOaId: rawLine.startsWith("@") ? rawLine : `@${rawLine}`,
+      phone: typeof cfg.phone === "string" && cfg.phone.trim() ? cfg.phone.trim() : "02-000-0000",
+      companyName:
+        typeof cfg.companyName === "string" && cfg.companyName.trim() ? cfg.companyName.trim() : "RRS Real Estate",
+    };
+  }
+
+  async updateContactConfig(
+    input: { lineOaId: string; phone: string; companyName: string },
+    actorId?: string,
+  ) {
+    const rawLine = input.lineOaId.trim() || "@rrs";
+    const lineOaId = rawLine.startsWith("@") ? rawLine : `@${rawLine}`;
+    const phone = input.phone.trim() || "02-000-0000";
+    const companyName = input.companyName.trim() || "RRS Real Estate";
+
+    await this.prisma.notificationRule.upsert({
+      where: { event: "portal.contact_config" },
+      update: {
+        timing: { lineOaId, phone, companyName },
+        updatedById: actorId ?? null,
+      },
+      create: {
+        event: "portal.contact_config",
+        description: "ตั้งค่าช่องทางติดต่อหน้าเว็บ Portal (LINE OA องค์กร & เบอร์โทร)",
+        isEnabled: true,
+        recipients: ["ADMIN"],
+        timing: { lineOaId, phone, companyName },
+        channels: ["IN_APP"],
+        updatedById: actorId ?? null,
+      },
+    });
+    return { lineOaId, phone, companyName };
+  }
 }

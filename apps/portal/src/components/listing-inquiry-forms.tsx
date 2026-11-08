@@ -2,17 +2,25 @@
 
 import { useState } from "react";
 import type { Locale } from "@/i18n/dictionaries";
+import { buildLineOaPropertyUrl, usePortalContactConfig } from "@/lib/line-oa";
 import { getApiBaseUrl } from "@/lib/public-api";
 
 export function ListingInquiryForms({
   listingId,
   assetCode,
+  title,
+  price,
+  type,
   locale,
 }: {
   listingId: string;
   assetCode: string;
+  title?: string;
+  price?: number;
+  type?: "RENT" | "SALE";
   locale: Locale;
 }) {
+  const contact = usePortalContactConfig();
   const [tab, setTab] = useState<"INQUIRY" | "VIEWING">("INQUIRY");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -90,20 +98,22 @@ export function ListingInquiryForms({
           </button>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <a
-            href={`https://line.me/R/ti/p/@rrs?ref=${encodeURIComponent(assetCode)}`}
+            href={buildLineOaPropertyUrl({ lineOaId: contact.lineOaId, assetCode, title, price, type, locale })}
+            target="_blank"
+            rel="noreferrer"
             onClick={() => void handleTrackClick("LINE")}
-            className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"
+            className="rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
           >
-            LINE OA ({assetCode})
+            {isEn ? `💬 LINE OA (${contact.lineOaId}) · Ref ${assetCode}` : `💬 ทัก LINE (${contact.lineOaId}) · ส่งรหัส ${assetCode} อัตโนมัติ`}
           </a>
           <a
-            href="tel:+6620000000"
+            href={`tel:${contact.phone.replace(/[^+\d]/g, "") || "+6620000000"}`}
             onClick={() => void handleTrackClick("PHONE")}
-            className="rounded-lg border border-lagoon px-3 py-2 text-xs font-semibold text-lagoon"
+            className="rounded-lg border border-lagoon px-3 py-2 text-xs font-semibold text-lagoon hover:bg-teal-50"
           >
-            {isEn ? "Call Agent" : "โทรติดต่อ"}
+            {isEn ? `📞 Call ${contact.phone}` : `📞 โทร ${contact.phone}`}
           </a>
         </div>
       </div>

@@ -133,7 +133,14 @@ export default async function ListingDetailPage({ params }: Props) {
         label={title}
       />
 
-      <ListingInquiryForms listingId={listing.id} assetCode={listing.asset.code} locale={l} />
+      <ListingInquiryForms
+        listingId={listing.id}
+        assetCode={listing.asset.code}
+        title={title}
+        price={listing.price}
+        type={listing.type}
+        locale={l}
+      />
 
       {nearby.length > 0 && (
         <section className="space-y-4">

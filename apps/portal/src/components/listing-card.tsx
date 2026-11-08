@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { dictionaries, type Locale } from "@/i18n/dictionaries";
 import { buildPortalCardBadges, getPortalCategoryLabel } from "@/lib/category-specs";
+import { buildLineOaPropertyUrl, usePortalContactConfig } from "@/lib/line-oa";
 import type { PublicListingItem } from "@/lib/public-api";
 
 export const FAVORITES_STORAGE_KEY = "rrs_portal_favorites_v1";
@@ -29,6 +30,7 @@ function writeStoredList(key: string, items: PublicListingItem[]): void {
 
 export function ListingCard({ item, locale }: { item: PublicListingItem; locale: Locale }) {
   const d = dictionaries[locale];
+  const contact = usePortalContactConfig();
   const title = locale === "th" ? item.titleTh : item.titleEn || item.titleTh;
   const priceSuffix = item.type === "RENT" ? d.priceSuffixRent : d.priceSuffixSale;
   const [isFav, setIsFav] = useState(false);
@@ -135,12 +137,29 @@ export function ListingCard({ item, locale }: { item: PublicListingItem; locale:
             {isCompared ? `✓ ${d.compareAdded}` : `⇄ ${d.compareAdd}`}
           </button>
         </div>
-        <Link
-          href={`/${locale}/listings/${item.slug}`}
-          className="rounded-lg bg-lagoon px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
-        >
-          {d.viewDetail}
-        </Link>
+        <div className="flex items-center gap-1.5">
+          <a
+            href={buildLineOaPropertyUrl({
+              lineOaId: contact.lineOaId,
+              assetCode: item.asset.code,
+              title,
+              price: item.price,
+              type: item.type,
+              locale,
+            })}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+          >
+            💬 LINE
+          </a>
+          <Link
+            href={`/${locale}/listings/${item.slug}`}
+            className="rounded-lg bg-lagoon px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90"
+          >
+            {d.viewDetail}
+          </Link>
+        </div>
       </div>
     </article>
   );

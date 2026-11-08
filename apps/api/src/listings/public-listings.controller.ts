@@ -47,6 +47,12 @@ export class PublicListingsController {
     return this.publicListings.listPublic(query);
   }
 
+  @Get("contact-config")
+  @ApiOperation({ summary: "ดึงการตั้งค่าช่องทางติดต่อหลักหน้าเว็บ Portal (LINE OA องค์กร & เบอร์โทร)" })
+  getContactConfig() {
+    return this.publicListings.getContactConfig();
+  }
+
   @Get(":slug")
   @Header("Cache-Control", "public, max-age=60, stale-while-revalidate=300")
   @ApiOperation({ summary: "ดูรายละเอียดประกาศสาธารณะตาม slug พร้อมประกาศใกล้เคียง" })

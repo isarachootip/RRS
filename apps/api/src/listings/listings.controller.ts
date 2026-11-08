@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Param, Patch, Post, Put, Query } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import { z } from "zod";
 import type { AuthUser } from "../auth/auth.types";
@@ -6,6 +6,7 @@ import { CurrentUser } from "../auth/public.decorator";
 import { ZodPipe } from "../common/zod.pipe";
 import { Can } from "../rbac/can.decorator";
 import { ListingsService } from "./listings.service";
+import { PublicListingsService } from "./public-listings.service";
 import {
   type CreateListingInput,
   type ListBackofficeListingsQuery,
@@ -19,11 +20,30 @@ const expireJobSchema = z.object({
   asOfDate: z.string().datetime().optional(),
 });
 
+const contactConfigSchema = z.object({
+  lineOaId: z.string().min(1).max(60),
+  phone: z.string().min(3).max(40),
+  companyName: z.string().min(1).max(120).optional().default("RRS Real Estate"),
+});
+
 @ApiTags("listings")
 @ApiBearerAuth()
 @Controller("listings")
 export class ListingsController {
-  constructor(private readonly listings: ListingsService) {}
+  constructor(
+    private readonly listings: ListingsService,
+    private readonly publicListings: PublicListingsService,
+  ) {}
+
+  @Put("contact-config")
+  @Can("listing.write")
+  @ApiOperation({ summary: "บันทึกการตั้งค่าช่องทางติดต่อหลักหน้าเว็บ Portal (LINE OA องค์กร & เบอร์โทร)" })
+  updateContactConfig(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodPipe(contactConfigSchema)) body: z.infer<typeof contactConfigSchema>,
+  ) {
+    return this.publicListings.updateContactConfig(body, user.id);
+  }
 
   @Get()
   @Can("asset.read")
