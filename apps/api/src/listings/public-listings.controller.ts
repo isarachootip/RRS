@@ -1,4 +1,4 @@
-import { Controller, Get, Header, HttpException, HttpStatus, Param, Query, Req } from "@nestjs/common";
+import { Body, Controller, Get, Header, HttpCode, HttpException, HttpStatus, Param, Post, Query, Req } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
 import { Public } from "../auth/public.decorator";
@@ -51,6 +51,13 @@ export class PublicListingsController {
   @ApiOperation({ summary: "ดึงการตั้งค่าช่องทางติดต่อหลักหน้าเว็บ Portal (LINE OA องค์กร & เบอร์โทร)" })
   getContactConfig() {
     return this.publicListings.getContactConfig();
+  }
+
+  @Post("line-webhook")
+  @HttpCode(200)
+  @ApiOperation({ summary: "รับข้อความ Webhook จาก LINE OA (@229qhxef) และส่งแจ้งเตือนเข้าแอดมิน" })
+  lineWebhook(@Body() body: Record<string, unknown>) {
+    return this.publicListings.handleLineWebhook(body ?? {});
   }
 
   @Get(":slug")

@@ -41,6 +41,8 @@ export const envSchema = z.object({
   LINE_CHANNEL_ACCESS_TOKEN: z.string().optional(),
   LINE_CHANNEL_SECRET: z.string().optional(),
   LINE_LOGIN_CHANNEL_ID: z.string().optional(),
+  LINE_ADMIN_USER_ID: z.string().default("U4705c60091e36513849ba962929e0254"),
+  LINE_OA_BASIC_ID: z.string().default("@229qhxef"),
 
   // พื้นที่เก็บไฟล์ S3 / MinIO (P05)
   S3_ENDPOINT: z.string().url().default("http://localhost:9000"),

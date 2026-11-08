@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@rrs/db";
+import { LineMessagingService } from "../notifications/line-messaging.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { PUBLIC_LISTING_SELECT, toPublicListingDto } from "./listings-public.helper";
 import { buildPublicListingsWhere } from "./listings-where.helper";
@@ -7,7 +8,10 @@ import type { ListPublicListingsQuery } from "./listings.types";
 
 @Injectable()
 export class PublicListingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly line: LineMessagingService,
+  ) {}
 
   async listPublic(query: ListPublicListingsQuery) {
     const now = new Date();
@@ -98,44 +102,78 @@ export class PublicListingsService {
   }
 
   async getContactConfig() {
-    const rule = await this.prisma.notificationRule.findUnique({
-      where: { event: "portal.contact_config" },
-    });
+    const rule = await this.prisma.notificationRule.findUnique({ where: { event: "portal.contact_config" } });
     const cfg = (rule?.timing ?? {}) as Record<string, unknown>;
-    const rawLine = typeof cfg.lineOaId === "string" && cfg.lineOaId.trim() ? cfg.lineOaId.trim() : "@rrs";
+    const rawLine = typeof cfg.lineOaId === "string" && cfg.lineOaId.trim() ? cfg.lineOaId.trim() : "@229qhxef";
     return {
       lineOaId: rawLine.startsWith("@") ? rawLine : `@${rawLine}`,
       phone: typeof cfg.phone === "string" && cfg.phone.trim() ? cfg.phone.trim() : "02-000-0000",
       companyName:
         typeof cfg.companyName === "string" && cfg.companyName.trim() ? cfg.companyName.trim() : "RRS Real Estate",
+      lineChannelId: "2012471586",
+      lineAdminUserId:
+        typeof cfg.lineAdminUserId === "string" && cfg.lineAdminUserId.trim()
+          ? cfg.lineAdminUserId.trim()
+          : "U4705c60091e36513849ba962929e0254",
     };
   }
 
   async updateContactConfig(
-    input: { lineOaId: string; phone: string; companyName: string },
+    input: { lineOaId: string; phone: string; companyName: string; lineAdminUserId?: string },
     actorId?: string,
   ) {
-    const rawLine = input.lineOaId.trim() || "@rrs";
+    const rawLine = input.lineOaId.trim() || "@229qhxef";
     const lineOaId = rawLine.startsWith("@") ? rawLine : `@${rawLine}`;
     const phone = input.phone.trim() || "02-000-0000";
     const companyName = input.companyName.trim() || "RRS Real Estate";
+    const lineAdminUserId = input.lineAdminUserId?.trim() || "U4705c60091e36513849ba962929e0254";
+    const timing = { lineOaId, phone, companyName, lineAdminUserId };
 
     await this.prisma.notificationRule.upsert({
       where: { event: "portal.contact_config" },
-      update: {
-        timing: { lineOaId, phone, companyName },
-        updatedById: actorId ?? null,
-      },
+      update: { timing, updatedById: actorId ?? null },
       create: {
         event: "portal.contact_config",
         description: "ตั้งค่าช่องทางติดต่อหน้าเว็บ Portal (LINE OA องค์กร & เบอร์โทร)",
         isEnabled: true,
         recipients: ["ADMIN"],
-        timing: { lineOaId, phone, companyName },
-        channels: ["IN_APP"],
+        timing,
+        channels: ["IN_APP", "LINE"],
         updatedById: actorId ?? null,
       },
     });
-    return { lineOaId, phone, companyName };
+    return { lineOaId, phone, companyName, lineChannelId: "2012471586", lineAdminUserId };
+  }
+
+  async sendTestLineToAdmin() {
+    const cfg = await this.getContactConfig();
+    const status = await this.line.sendToAdmin(
+      `🔔 [RRS ทดสอบแจ้งเตือน] ระบบเชื่อมต่อ LINE OA (${cfg.lineOaId}) สำเร็จ พร้อมแจ้งเตือนเมื่อลูกค้าติดต่อเรื่องทรัพย์สินครับ`,
+      cfg.lineAdminUserId,
+    );
+    return { ok: true, status, to: cfg.lineAdminUserId };
+  }
+
+  async handleLineWebhook(payload: Record<string, unknown>) {
+    const events = Array.isArray(payload.events) ? (payload.events as Array<Record<string, unknown>>) : [];
+    const cfg = await this.getContactConfig();
+    for (const ev of events) {
+      if (ev.type !== "message") continue;
+      const msg = (ev.message ?? {}) as Record<string, unknown>;
+      const text = typeof msg.text === "string" ? msg.text.trim() : "";
+      if (!text) continue;
+      const codeMatch = text.match(/PR-\d{3,10}/i)?.[0]?.toUpperCase() ?? null;
+      await this.line.sendToAdmin(
+        `💬 ลูกค้าทัก LINE OA (${cfg.lineOaId})${codeMatch ? ` [รหัสทรัพย์ ${codeMatch}]` : ""}\nข้อความ: ${text}`,
+        cfg.lineAdminUserId,
+      );
+      if (typeof ev.replyToken === "string" && ev.replyToken) {
+        await this.line.replyMessage(
+          ev.replyToken,
+          `ขอบคุณที่ติดต่อ ${cfg.companyName} ครับ${codeMatch ? ` (อ้างอิงรหัสทรัพย์ ${codeMatch})` : ""} ทีมงานได้รับข้อความแล้วและจะรีบติดต่อกลับโดยเร็วที่สุดครับ`,
+        );
+      }
+    }
+    return { received: events.length };
   }
 }

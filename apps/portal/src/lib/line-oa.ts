@@ -10,14 +10,14 @@ export interface PortalContactConfig {
 }
 
 export const DEFAULT_PORTAL_CONTACT: PortalContactConfig = {
-  lineOaId: process.env.NEXT_PUBLIC_LINE_OA_ID ?? "@rrs",
+  lineOaId: process.env.NEXT_PUBLIC_LINE_OA_ID ?? "@229qhxef",
   phone: process.env.NEXT_PUBLIC_CONTACT_PHONE ?? "02-000-0000",
   companyName: "RRS Real Estate",
 };
 
 export function normalizeLineOaId(raw?: string | null): string {
   const trimmed = (raw ?? "").trim();
-  if (!trimmed) return "@rrs";
+  if (!trimmed) return "@229qhxef";
   return trimmed.startsWith("@") ? trimmed : `@${trimmed}`;
 }
 

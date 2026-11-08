@@ -63,4 +63,34 @@ export class LineMessagingService {
     this.outbox.push(msg);
     return "sent";
   }
+
+  async sendToAdmin(text: string, overrideUserId?: string): Promise<"sent" | "skipped"> {
+    const adminUid = overrideUserId?.trim() || this.config.get("LINE_ADMIN_USER_ID", { infer: true });
+    if (!adminUid) return "skipped";
+    try {
+      return await this.sendPush(adminUid, text);
+    } catch (err) {
+      this.logger.warn(`Failed sendToAdmin (${adminUid}): ${String(err)}`);
+      return "skipped";
+    }
+  }
+
+  async replyMessage(replyToken: string, text: string): Promise<"sent" | "skipped"> {
+    const transport = this.config.get("LINE_TRANSPORT", { infer: true });
+    const token = this.config.get("LINE_CHANNEL_ACCESS_TOKEN", { infer: true });
+    if (transport === "log" || !token || !replyToken) return "skipped";
+
+    const res = await fetch("https://api.line.me/v2/bot/message/reply", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        replyToken,
+        messages: [{ type: "text", text }],
+      }),
+    });
+    return res.ok ? "sent" : "skipped";
+  }
 }

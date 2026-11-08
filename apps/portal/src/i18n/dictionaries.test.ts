@@ -103,7 +103,7 @@ describe("P21 Portal 7-Language Dictionaries (th, en, ru, ja, zh, ar, de) & SEO 
   it("สร้างลิงก์ LINE OA (oaMessage) พร้อมเติมรหัสทรัพย์และรายละเอียดอัตโนมัติ", () => {
     expect(normalizeLineOaId("tamadee")).toBe("@tamadee");
     expect(normalizeLineOaId("@tamadee")).toBe("@tamadee");
-    expect(normalizeLineOaId("")).toBe("@rrs");
+    expect(normalizeLineOaId("")).toBe("@229qhxef");
 
     const msg = buildLineOaPropertyMessage({
       assetCode: "PR-000013",

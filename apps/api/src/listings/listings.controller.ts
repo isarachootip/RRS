@@ -24,6 +24,7 @@ const contactConfigSchema = z.object({
   lineOaId: z.string().min(1).max(60),
   phone: z.string().min(3).max(40),
   companyName: z.string().min(1).max(120).optional().default("RRS Real Estate"),
+  lineAdminUserId: z.string().max(80).optional(),
 });
 
 @ApiTags("listings")
@@ -43,6 +44,14 @@ export class ListingsController {
     @Body(new ZodPipe(contactConfigSchema)) body: z.infer<typeof contactConfigSchema>,
   ) {
     return this.publicListings.updateContactConfig(body, user.id);
+  }
+
+  @Post("contact-config/test-line")
+  @HttpCode(200)
+  @Can("listing.write")
+  @ApiOperation({ summary: "ทดสอบส่งข้อความแจ้งเตือนเข้า LINE ของแอดมินผ่าน LINE Messaging API" })
+  testLinePush() {
+    return this.publicListings.sendTestLineToAdmin();
   }
 
   @Get()
