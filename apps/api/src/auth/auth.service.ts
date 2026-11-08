@@ -160,6 +160,22 @@ export class AuthService {
     return completeLogin ? this.completeLogin(userId, meta, "totp") : null;
   }
 
+  async mfaDisable(userId: string, meta: RequestMeta) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { totpEnabled: false, totpSecret: null },
+    });
+    await this.audit.log({
+      actorId: userId,
+      action: "UPDATE",
+      entityType: "user",
+      entityId: userId,
+      after: { totpEnabled: false },
+      meta,
+    });
+    return { totpEnabled: false };
+  }
+
   async mfaVerify(userId: string, code: string, meta: RequestMeta): Promise<LoginOutcome> {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
     if (!user.totpEnabled || !user.totpSecret)

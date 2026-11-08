@@ -176,7 +176,9 @@ export class UsersService {
       where: { id },
       data: { totpEnabled: false, totpSecret: null, updatedById: actorId },
     });
-    await this.sessions.revokeAllForUser(id);
+    if (actorId !== id) {
+      await this.sessions.revokeAllForUser(id);
+    }
     this.cache.invalidate(id);
 
     await this.audit.log({

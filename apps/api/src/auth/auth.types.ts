@@ -25,5 +25,8 @@ export type LoginResult =
   | { status: "OK"; accessToken: string; expiresIn: number; user: MeResponse }
   | { status: "MFA_REQUIRED" | "MFA_SETUP_REQUIRED"; challengeToken: string };
 
-/** บทบาทที่บังคับเปิด 2FA (P03) */
-export const MFA_REQUIRED_ROLES = ["ADMIN", "ACCOUNTING"];
+/** บทบาทที่บังคับเปิด 2FA (ค่าเริ่มต้น: ไม่บังคับ เพื่อให้เข้าใช้งานด้วยรหัสผ่านปกติได้ทันที) */
+export const MFA_REQUIRED_ROLES: string[] = (process.env.MFA_REQUIRED_ROLES ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);

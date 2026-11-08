@@ -114,6 +114,14 @@ export class AuthController {
     return { totpEnabled: true };
   }
 
+  @ApiBearerAuth()
+  @Post("me/mfa/disable")
+  @HttpCode(200)
+  @ApiOperation({ summary: "ปิดการใช้งาน 2FA ของตนเอง" })
+  mfaDisable(@CurrentUser() user: AuthUser, @Req() req: Request) {
+    return this.auth.mfaDisable(user.id, requestMeta(req));
+  }
+
   @Public()
   @Post("refresh")
   @HttpCode(200)

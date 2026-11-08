@@ -125,11 +125,20 @@ describe("SettingsView", () => {
     renderWithRole("ADMIN");
     expect(await screen.findByText("agent1@rrs.local")).toBeInTheDocument();
 
-    const resetBtn = screen.getByRole("button", { name: "รีเซ็ต 2FA" });
+    const resetBtn = screen.getByRole("button", { name: "ปิด / รีเซ็ต 2FA" });
     await user.click(resetBtn);
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining("/api/v1/users/u-agent-1/reset-mfa"),
+        expect.objectContaining({ method: "POST" }),
+      );
+    });
+
+    const disableOwnMfaBtn = screen.getByRole("button", { name: "ปิดการใช้งาน 2FA" });
+    await user.click(disableOwnMfaBtn);
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/v1/auth/me/mfa/disable"),
         expect.objectContaining({ method: "POST" }),
       );
     });

@@ -147,32 +147,32 @@ describe("ออกจากระบบ", () => {
 });
 
 describe("2FA (TOTP)", () => {
-  it("Admin ล็อกอินครั้งแรก → บังคับตั้ง 2FA, ตั้งแล้วครั้งต่อไปต้องใส่รหัส", async () => {
+  it("Admin ล็อกอินครั้งแรกได้ทันทีโดยไม่บังคับ 2FA และสามารถเปิด/ปิด 2FA เองได้", async () => {
     const u = await createUser(app, { email: "admin.mfa@test.local", role: "ADMIN" });
     const first = await login(u.email).expect(200);
-    expect(first.body).toEqual({ status: "MFA_SETUP_REQUIRED", challengeToken: expect.any(String) });
-    expect(first.headers["set-cookie"]).toBeUndefined();
+    expect(first.body.status).toBe("OK");
+    const token = first.body.accessToken as string;
 
     const setup = await http()
-      .post("/api/v1/auth/mfa/setup")
-      .send({ challengeToken: first.body.challengeToken })
+      .post("/api/v1/auth/me/mfa/setup")
+      .set("authorization", `Bearer ${token}`)
       .expect(200);
     expect(setup.body.otpauthUrl).toMatch(/^otpauth:\/\/totp\/RRS:admin\.mfa%40test\.local\?/);
     expect(setup.body.qrDataUrl).toMatch(/^data:image\/png;base64,/);
-    // secret เก็บแบบเข้ารหัส ไม่ใช่ข้อความเดิม
     const stored = await prisma.user.findUniqueOrThrow({ where: { id: u.id } });
     expect(stored.totpSecret).not.toContain(setup.body.secret);
 
     await http()
-      .post("/api/v1/auth/mfa/enable")
-      .send({ challengeToken: first.body.challengeToken, code: "000000" })
+      .post("/api/v1/auth/me/mfa/enable")
+      .set("authorization", `Bearer ${token}`)
+      .send({ code: "000000" })
       .expect(401);
     const enabled = await http()
-      .post("/api/v1/auth/mfa/enable")
-      .send({ challengeToken: first.body.challengeToken, code: authenticator.generate(setup.body.secret) })
+      .post("/api/v1/auth/me/mfa/enable")
+      .set("authorization", `Bearer ${token}`)
+      .send({ code: authenticator.generate(setup.body.secret) })
       .expect(200);
-    expect(enabled.body.status).toBe("OK");
-    expect(refreshCookie(enabled.headers["set-cookie"])).toBeTruthy();
+    expect(enabled.body.totpEnabled).toBe(true);
 
     const second = await login(u.email).expect(200);
     expect(second.body.status).toBe("MFA_REQUIRED");
@@ -185,22 +185,27 @@ describe("2FA (TOTP)", () => {
       .send({ challengeToken: second.body.challengeToken, code: authenticator.generate(setup.body.secret) })
       .expect(200);
     expect(ok.body.user.totpEnabled).toBe(true);
+
+    // ปิด 2FA ของตนเองแล้วกลับมาเข้าด้วยรหัสผ่านปกติได้
+    await http()
+      .post("/api/v1/auth/me/mfa/disable")
+      .set("authorization", `Bearer ${ok.body.accessToken as string}`)
+      .expect(200);
+    const third = await login(u.email).expect(200);
+    expect(third.body.status).toBe("OK");
   });
 
-  it("Accounting ก็ถูกบังคับเหมือนกัน แต่ Agent ไม่ถูกบังคับ", async () => {
+  it("Accounting และ Agent ก็ไม่ถูกบังคับตั้ง 2FA ตอนล็อกอิน", async () => {
     await createUser(app, { email: "acc.mfa@test.local", role: "ACCOUNTING" });
-    expect((await login("acc.mfa@test.local")).body.status).toBe("MFA_SETUP_REQUIRED");
+    expect((await login("acc.mfa@test.local")).body.status).toBe("OK");
   });
 
-  it("challenge token ใช้แทน access token ไม่ได้ และ token ปลอมใช้ไม่ได้", async () => {
-    await createUser(app, { email: "admin.ch@test.local", role: "ADMIN" });
-    const { challengeToken } = (await login("admin.ch@test.local")).body;
-    await http().get("/api/v1/auth/me").set("authorization", `Bearer ${challengeToken}`).expect(401);
+  it("challenge token ปลอมใช้ไม่ได้", async () => {
     const res = await http().post("/api/v1/auth/mfa/setup").send({ challengeToken: "x.y.z" }).expect(401);
     expect(res.body.code).toBe("CHALLENGE_EXPIRED");
   });
 
-  it("Agent เปิด 2FA เองจากโปรไฟล์ได้", async () => {
+  it("Agent เปิดและปิด 2FA เองจากโปรไฟล์ได้", async () => {
     const u = await createUser(app, { email: "agent.mfa@test.local" });
     const token = (await login(u.email)).body.accessToken;
     const setup = await http().post("/api/v1/auth/me/mfa/setup").set("authorization", `Bearer ${token}`).expect(200);
@@ -210,6 +215,8 @@ describe("2FA (TOTP)", () => {
       .send({ code: authenticator.generate(setup.body.secret) })
       .expect(200);
     expect((await login(u.email)).body.status).toBe("MFA_REQUIRED");
+    await http().post("/api/v1/auth/me/mfa/disable").set("authorization", `Bearer ${token}`).expect(200);
+    expect((await login(u.email)).body.status).toBe("OK");
   });
 });
 

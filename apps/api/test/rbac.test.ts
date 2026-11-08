@@ -27,9 +27,9 @@ interface TestActors {
 
 const actors = {} as TestActors;
 
-async function loginToken(email: string, needMfa = false): Promise<string> {
+async function loginToken(email: string, _needMfa = false): Promise<string> {
   const res = await http().post("/api/v1/auth/login").send({ email, password: PASSWORD }).expect(200);
-  if (!needMfa && res.body.status === "OK") return res.body.accessToken as string;
+  if (res.body.status === "OK") return res.body.accessToken as string;
   const challengeToken = res.body.challengeToken as string;
   const setup = await http().post("/api/v1/auth/mfa/setup").send({ challengeToken }).expect(200);
   const code = authenticator.generate(setup.body.secret as string);
