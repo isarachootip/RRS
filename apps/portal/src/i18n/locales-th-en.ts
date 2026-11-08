@@ -22,7 +22,7 @@ export const thDictionary = {
   catFACTORY: "โรงงาน",
   catWAREHOUSE: "โกดังสินค้า",
   catLAND: "ที่ดิน",
-  catCOMMERCIAL: "อาคารพาณิชย์",
+  catCOMMERCIAL: "อาคารพาณิชย์ / ห้องแถว",
   filterMinPrice: "ราคาต่ำสุด (บาท)",
   filterMaxPrice: "ราคาสูงสุด (บาท)",
   filterBedrooms: "ห้องนอนขั้นต่ำ",
