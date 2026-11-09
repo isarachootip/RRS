@@ -7,6 +7,7 @@ import {
   Globe,
   HandCoins,
   LayoutDashboard,
+  MessageSquare,
   MessageSquareText,
   Settings,
   UserRound,
@@ -34,6 +35,13 @@ export const NAV: NavItem[] = [
     icon: MessageSquareText,
     phase: "P21",
     permissions: ["lead.read", "owner.read"],
+  },
+  {
+    href: "/team-chat",
+    label: "nav.teamChat",
+    icon: MessageSquare,
+    phase: "P21",
+    permissions: ["dashboard.read", "lead.read", "asset.read", "payment.read"],
   },
   { href: "/assets", label: "nav.assets", icon: Building2, phase: "P06", permissions: ["asset.read"] },
   {

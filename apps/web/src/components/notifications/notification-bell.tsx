@@ -109,7 +109,20 @@ export function NotificationBell() {
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <span className="font-medium">{n.title}</span>
+                    {n.link ? (
+                      <Link
+                        href={n.link}
+                        onClick={() => {
+                          if (!n.readAt) void handleMarkRead(n.id);
+                          setOpen(false);
+                        }}
+                        className="font-medium text-teal-800 hover:underline"
+                      >
+                        {n.title}
+                      </Link>
+                    ) : (
+                      <span className="font-medium">{n.title}</span>
+                    )}
                     {!n.readAt && (
                       <button
                         type="button"

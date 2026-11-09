@@ -47,7 +47,7 @@ describe("AppShell", () => {
   it("แสดงเมนูภาษาไทยครบ และไฮไลต์หน้าปัจจุบัน", () => {
     renderShell();
     const nav = within(screen.getByTestId("sidebar-desktop")).getByRole("navigation", { name: "เมนูหลัก" });
-    for (const label of ["ภาพรวม", "ลูกค้า", "ห้องแชท", "ทรัพย์สิน", "นัดดูห้อง", "จองและสัญญา", "ค่านายหน้า", "รายงาน"]) {
+    for (const label of ["ภาพรวม", "ลูกค้า", "ห้องแชท", "แชทภายในทีม (Team Chat)", "ทรัพย์สิน", "นัดดูห้อง", "จองและสัญญา", "ค่านายหน้า", "รายงาน"]) {
       expect(within(nav).getByRole("link", { name: label })).toBeInTheDocument();
     }
     expect(within(nav).getByRole("link", { name: "ลูกค้า" })).toHaveAttribute("aria-current", "page");

@@ -8,6 +8,7 @@ export const th = {
   "nav.dashboard": "ภาพรวม",
   "nav.leads": "ลูกค้า",
   "nav.chat": "ห้องแชท",
+  "nav.teamChat": "แชทภายในทีม (Team Chat)",
   "nav.assets": "ทรัพย์สิน",
   "nav.listings": "ประกาศเว็บ",
   "nav.owners": "เจ้าของทรัพย์",
