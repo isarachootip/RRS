@@ -1378,3 +1378,62 @@ model PasswordResetToken {
   @@index([userId])
   @@map("password_reset_tokens")
 }
+
+// ---------------------------------------------------------------------
+// ระบบห้องแชทลูกค้า (Customer Chat) และแชทเจ้าของทรัพย์ (Owner Internal Chat)
+// ---------------------------------------------------------------------
+
+enum ChatRoomType {
+  CUSTOMER
+  OWNER
+}
+
+enum ChatSenderType {
+  STAFF
+  CUSTOMER
+  OWNER
+  SYSTEM
+}
+
+model ChatRoom {
+  id                 String        @id @default(uuid()) @db.Uuid
+  type               ChatRoomType
+  publicToken        String        @unique @map("public_token")
+  title              String
+  subtitle           String?
+  lineUserId         String?       @map("line_user_id")
+  leadId             String?       @map("lead_id") @db.Uuid
+  ownerId            String?       @map("owner_id") @db.Uuid
+  assetCode          String?       @map("asset_code")
+  assignedAgentId    String?       @map("assigned_agent_id") @db.Uuid
+  unreadCount        Int           @default(0) @map("unread_count")
+  lastMessageAt      DateTime      @default(now()) @map("last_message_at") @db.Timestamptz(6)
+  lastMessagePreview String?       @map("last_message_preview")
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  messages ChatMessage[]
+
+  @@index([type, lastMessageAt(sort: Desc)])
+  @@index([lineUserId])
+  @@index([ownerId])
+  @@index([leadId])
+  @@map("chat_rooms")
+}
+
+model ChatMessage {
+  id           String         @id @default(uuid()) @db.Uuid
+  roomId       String         @map("room_id") @db.Uuid
+  senderType   ChatSenderType @map("sender_type")
+  senderUserId String?        @map("sender_user_id") @db.Uuid
+  senderName   String         @map("sender_name")
+  content      String
+  imageUrl     String?        @map("image_url")
+  assetCode    String?        @map("asset_code")
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  room ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId, createdAt])
+  @@map("chat_messages")
+}

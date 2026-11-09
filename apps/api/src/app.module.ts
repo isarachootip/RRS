@@ -9,6 +9,7 @@ import { AssetsModule } from "./assets/assets.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { BookingsModule } from "./bookings/bookings.module";
+import { ChatModule } from "./chat/chat.module";
 import { CommissionsModule } from "./commissions/commissions.module";
 import { validateEnv } from "./config/env";
 import { ContractsModule } from "./contracts/contracts.module";
@@ -73,6 +74,7 @@ const isDev = process.env.NODE_ENV !== "production";
     NotificationsModule,
     PdpaModule,
     ListingsModule,
+    ChatModule,
   ],
   controllers: [HealthController],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],

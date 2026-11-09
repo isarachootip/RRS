@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AssetsModule } from "../assets/assets.module";
 import { AuditModule } from "../audit/audit.module";
+import { ChatModule } from "../chat/chat.module";
 import { MailModule } from "../mail/mail.module";
 import { RbacModule } from "../rbac/rbac.module";
 import { ListingsController } from "./listings.controller";
@@ -11,7 +12,7 @@ import { PublicPortalFormsController } from "./public-portal-forms.controller";
 import { PublicPortalFormsService } from "./public-portal-forms.service";
 
 @Module({
-  imports: [RbacModule, AuditModule, AssetsModule, MailModule],
+  imports: [RbacModule, AuditModule, AssetsModule, MailModule, ChatModule],
   controllers: [ListingsController, PublicListingsController, PublicPortalFormsController],
   providers: [ListingsService, PublicListingsService, PublicPortalFormsService],
   exports: [ListingsService, PublicListingsService, PublicPortalFormsService],

@@ -7,6 +7,7 @@ import {
   Globe,
   HandCoins,
   LayoutDashboard,
+  MessageSquareText,
   Settings,
   UserRound,
   Users,
@@ -27,6 +28,13 @@ export interface NavItem {
 export const NAV: NavItem[] = [
   { href: "/", label: "nav.dashboard", icon: LayoutDashboard, phase: "P16", permissions: ["dashboard.read"] },
   { href: "/leads", label: "nav.leads", icon: Users, phase: "P07", permissions: ["lead.read"] },
+  {
+    href: "/chat",
+    label: "nav.chat",
+    icon: MessageSquareText,
+    phase: "P21",
+    permissions: ["lead.read", "owner.read"],
+  },
   { href: "/assets", label: "nav.assets", icon: Building2, phase: "P06", permissions: ["asset.read"] },
   {
     href: "/listings",

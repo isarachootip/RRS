@@ -7,6 +7,7 @@ export const th = {
   "app.tagline": "ระบบบริหารงานเช่าและขาย",
   "nav.dashboard": "ภาพรวม",
   "nav.leads": "ลูกค้า",
+  "nav.chat": "ห้องแชท",
   "nav.assets": "ทรัพย์สิน",
   "nav.listings": "ประกาศเว็บ",
   "nav.owners": "เจ้าของทรัพย์",

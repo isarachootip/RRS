@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { nextCode } from "@rrs/db";
 import { normalizePhone } from "@rrs/shared";
 import { AssetStatusService } from "../assets/asset-status.service";
+import { PublicChatService } from "../chat/public-chat.service";
 import type { RequestMeta } from "../common/request-meta";
 import { MailService } from "../mail/mail.service";
 import { LineMessagingService } from "../notifications/line-messaging.service";
@@ -25,6 +26,7 @@ export class PublicPortalFormsService {
     private readonly mail: MailService,
     private readonly assetStatus: AssetStatusService,
     private readonly line: LineMessagingService,
+    private readonly publicChat: PublicChatService,
   ) {}
 
   private parseNormalizedPhone(raw: string): string {
@@ -76,6 +78,12 @@ export class PublicPortalFormsService {
       { ...input, noteText: input.message },
       meta,
     );
+    void this.publicChat.handleIncomingExternalMessage({
+      type: "CUSTOMER",
+      senderName: `${input.fullName} (${phone})`,
+      content: input.message || `สอบถามประกาศ ${listing.asset.code} — ${listing.titleTh}`,
+      assetCode: listing.asset.code,
+    });
     if (process.env.NODE_ENV !== "test") {
       void this.line.sendToAdmin(
         `📩 [ลูกค้าสอบถามจากเว็บ]\nรหัสลูกค้า: ${res.leadCode}\nชื่อ: ${input.fullName} (${phone})\nทรัพย์: ${listing.asset.code} — ${listing.titleTh}\nข้อความ: ${input.message || "-"}`,
@@ -130,6 +138,12 @@ export class PublicPortalFormsService {
       },
     });
     await this.assetStatus.recompute(listing.assetId, agent.id);
+    void this.publicChat.handleIncomingExternalMessage({
+      type: "CUSTOMER",
+      senderName: `${input.fullName} (${phone})`,
+      content: `ขอนัดดูทรัพย์ (${appointment.code}) ${listing.asset.code} — ${input.note ?? listing.titleTh}`,
+      assetCode: listing.asset.code,
+    });
     if (process.env.NODE_ENV !== "test") {
       void this.line.sendToAdmin(
         `📅 [ขอนัดดูทรัพย์จากเว็บ]\nรหัสนัด: ${appointment.code}\nลูกค้า: ${input.fullName} (${phone})\nทรัพย์: ${listing.asset.code} — ${listing.titleTh}\nเวลานัด: ${startsAt.toLocaleString("th-TH")}`,
@@ -149,6 +163,12 @@ export class PublicPortalFormsService {
     const phone = this.parseNormalizedPhone(input.phone);
     const agent = await this.resolveDefaultAgentId();
     const res = await handlePublicOwnerSubmission(this.prisma, this.notifications, this.mail, agent, phone, input, meta);
+    void this.publicChat.handleIncomingExternalMessage({
+      type: "OWNER",
+      senderName: `${input.fullName} (${phone})`,
+      ownerCode: res.ownerCode,
+      content: `ฝากทรัพย์ใหม่จากหน้าเว็บ (${res.ownerCode})`,
+    });
     if (process.env.NODE_ENV !== "test") {
       void this.line.sendToAdmin(
         `🏠 [เจ้าของฝากทรัพย์ใหม่จากเว็บ]\nรหัสเจ้าของ: ${res.ownerCode}\nชื่อ: ${input.fullName} (${phone})`,

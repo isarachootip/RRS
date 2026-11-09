@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type { Prisma } from "@rrs/db";
+import { PublicChatService } from "../chat/public-chat.service";
 import { LineMessagingService } from "../notifications/line-messaging.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { PUBLIC_LISTING_SELECT, toPublicListingDto } from "./listings-public.helper";
@@ -11,6 +12,7 @@ export class PublicListingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly line: LineMessagingService,
+    private readonly publicChat: PublicChatService,
   ) {}
 
   async listPublic(query: ListPublicListingsQuery) {
@@ -160,19 +162,26 @@ export class PublicListingsService {
     for (const ev of events) {
       if (ev.type !== "message") continue;
       const msg = (ev.message ?? {}) as Record<string, unknown>;
+      const src = (ev.source ?? {}) as Record<string, unknown>;
       const text = typeof msg.text === "string" ? msg.text.trim() : "";
       if (!text) continue;
+      const lineUserId = typeof src.userId === "string" ? src.userId : undefined;
       const codeMatch = text.match(/PR-\d{3,10}/i)?.[0]?.toUpperCase() ?? null;
+      const replyToken = typeof ev.replyToken === "string" ? ev.replyToken : undefined;
+
+      await this.publicChat.handleIncomingExternalMessage({
+        lineUserId,
+        content: text,
+        assetCode: codeMatch,
+        replyToken,
+        companyName: cfg.companyName,
+        adminLineUserId: cfg.lineAdminUserId,
+      });
+
       await this.line.sendToAdmin(
         `💬 ลูกค้าทัก LINE OA (${cfg.lineOaId})${codeMatch ? ` [รหัสทรัพย์ ${codeMatch}]` : ""}\nข้อความ: ${text}`,
         cfg.lineAdminUserId,
       );
-      if (typeof ev.replyToken === "string" && ev.replyToken) {
-        await this.line.replyMessage(
-          ev.replyToken,
-          `ขอบคุณที่ติดต่อ ${cfg.companyName} ครับ${codeMatch ? ` (อ้างอิงรหัสทรัพย์ ${codeMatch})` : ""} ทีมงานได้รับข้อความแล้วและจะรีบติดต่อกลับโดยเร็วที่สุดครับ`,
-        );
-      }
     }
     return { received: events.length };
   }
